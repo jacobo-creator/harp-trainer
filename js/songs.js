@@ -3,9 +3,11 @@
 // notes, and photos of sheet music.
 
 import { getAllSongs, getSong, saveSong, deleteSong } from "./store.js";
-import { HARP_KEYS } from "./harmonica.js";
+import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey } from "./settings.js";
 import { renderTabbedNotation } from "./tablature.js";
+import { parseImport, transcribeTrack } from "./importers.js";
+import { searchTunes, fetchTuneAbc } from "./tunesearch.js";
 
 const el = {};
 let current = null; // song being edited
@@ -13,6 +15,10 @@ let renderTimer = null;
 let currentTune = null; // last rendered abcjs tune, for playback
 let synth = null;
 let synthCtx = null;
+let picker = null; // import-picker state
+let previewSynth = null;
+let previewCtx = null;
+let previewDiv = null;
 
 export function initSongs() {
   el.listView = document.getElementById("songs-list-view");
@@ -36,8 +42,73 @@ export function initSongs() {
     (k) => `<option value="${k.key}">${k.key}</option>`
   ).join("");
 
+  el.importBtn = document.getElementById("song-import");
+  el.importInput = document.getElementById("import-input");
+  el.findBtn = document.getElementById("song-find");
+  el.onlinePanel = document.getElementById("online-panel");
+  el.onlineQuery = document.getElementById("online-query");
+  el.onlineGo = document.getElementById("online-go");
+  el.onlineResults = document.getElementById("online-results");
+
   el.newBtn.addEventListener("click", () => openEditor(null));
   el.search.addEventListener("input", renderList);
+
+  el.importBtn.addEventListener("click", () => el.importInput.click());
+  el.importInput.addEventListener("change", onImportFile);
+  el.findBtn.addEventListener("click", () => {
+    el.onlinePanel.classList.toggle("hidden");
+    if (!el.onlinePanel.classList.contains("hidden")) el.onlineQuery.focus();
+  });
+  el.onlineGo.addEventListener("click", runOnlineSearch);
+  el.onlineQuery.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runOnlineSearch();
+  });
+  el.onlineResults.addEventListener("click", (e) => {
+    const card = e.target.closest("[data-tune-id]");
+    if (card) loadOnlineTune(card.dataset.tuneId, card.dataset.tuneName);
+  });
+
+  // ---- import picker ----
+  el.importModal = document.getElementById("import-modal");
+  el.importModalTitle = document.getElementById("import-modal-title");
+  el.importTracks = document.getElementById("import-tracks");
+  el.importHarp = document.getElementById("import-harp");
+  el.importCollapse = document.getElementById("import-collapse");
+  el.importShift = document.getElementById("import-shift");
+  el.importPlayability = document.getElementById("import-playability");
+  el.importPreview = document.getElementById("import-preview");
+  el.importConfirm = document.getElementById("import-confirm");
+  el.importCancel = document.getElementById("import-cancel");
+
+  el.importHarp.innerHTML = HARP_KEYS.map(
+    (k) => `<option value="${k.key}">${k.key} harp</option>`
+  ).join("");
+
+  el.importTracks.addEventListener("change", (e) => {
+    if (e.target.name === "imptrack") {
+      picker.trackIndex = +e.target.value;
+      refreshPicker();
+    }
+  });
+  el.importHarp.addEventListener("change", () => {
+    picker.harpKey = el.importHarp.value;
+    refreshPicker();
+  });
+  el.importCollapse.addEventListener("change", () => {
+    picker.collapse = el.importCollapse.value;
+    refreshPicker();
+  });
+  el.importModal.querySelectorAll("[data-shift]").forEach((b) =>
+    b.addEventListener("click", () => {
+      picker.shift = Math.max(-36, Math.min(36, picker.shift + +b.dataset.shift));
+      refreshPicker();
+    })
+  );
+  el.importPreview.addEventListener("click", () => {
+    if (picker.abc) previewAbc(picker.abc);
+  });
+  el.importConfirm.addEventListener("click", confirmImport);
+  el.importCancel.addEventListener("click", closeImportPicker);
   document.getElementById("editor-back").addEventListener("click", closeEditor);
   document.getElementById("editor-save").addEventListener("click", save);
   document.getElementById("editor-delete").addEventListener("click", removeCurrent);
@@ -131,6 +202,197 @@ function openEditor(id) {
       photos: [],
     };
     fillEditor();
+  }
+}
+
+// Open the editor for a brand-new song pre-filled from an import / online tune.
+function openEditorWithContent({ abc = "", title = "", tab = "", key }) {
+  current = {
+    id: null,
+    title,
+    key: key || getHarpKey(),
+    tab,
+    abc,
+    notes: "",
+    photos: [],
+  };
+  fillEditor();
+}
+
+async function onImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  el.importInput.value = "";
+  if (!file) return;
+  flash("Reading " + file.name + "…");
+  try {
+    const parsed = await parseImport(file);
+    if (parsed.kind === "abc") {
+      openEditorWithContent({ abc: parsed.abc, title: parsed.title });
+      if (parsed.warning) setTimeout(() => alert(parsed.warning), 50);
+      else flash("Imported — review and Save");
+    } else {
+      openImportPicker(parsed);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Couldn't import this file:\n" + (err.message || err));
+  }
+}
+
+// ---- import picker: choose which track/voice becomes the tab line ----
+function openImportPicker(parsed) {
+  const nonDrum = parsed.tracks.filter((t) => !t.drums);
+  const pool = nonDrum.length ? nonDrum : parsed.tracks;
+  const def = pool.reduce((a, b) => (b.noteCount > a.noteCount ? b : a));
+  picker = {
+    parsed,
+    trackIndex: def.index,
+    collapse: "top",
+    shift: 0,
+    harpKey: getHarpKey(),
+    abc: "",
+  };
+  el.importModalTitle.textContent = parsed.title || "Import melody";
+  el.importHarp.value = picker.harpKey;
+  el.importCollapse.value = "top";
+  renderImportTracks();
+  refreshPicker();
+  el.importModal.classList.remove("hidden");
+}
+
+function renderImportTracks() {
+  el.importTracks.innerHTML = picker.parsed.tracks
+    .map(
+      (t) => `<label class="track-row${t.index === picker.trackIndex ? " sel" : ""}">
+        <input type="radio" name="imptrack" value="${t.index}" ${
+        t.index === picker.trackIndex ? "checked" : ""
+      } />
+        <span class="track-main">
+          <span class="track-name">${escapeHtml(t.name)}${t.drums ? " · drums" : ""}</span>
+          <span class="track-sub">${t.noteCount} notes · range ${t.lowLabel}–${t.highLabel}</span>
+        </span>
+      </label>`
+    )
+    .join("");
+}
+
+// Re-transcribe with current options and update the readouts.
+function refreshPicker() {
+  el.importShift.textContent =
+    (picker.shift > 0 ? "+" : "") + picker.shift + (picker.shift ? " st" : "");
+  el.importTracks.querySelectorAll(".track-row").forEach((row) => {
+    const checked = row.querySelector("input").checked;
+    row.classList.toggle("sel", checked);
+  });
+
+  const { abc, notes } = transcribeTrack(picker.parsed, picker.trackIndex, {
+    collapse: picker.collapse,
+    shift: picker.shift,
+  });
+  picker.abc = abc;
+
+  const offset = offsetForKey(picker.harpKey);
+  const total = notes.length;
+  const playable = notes.filter((m) => techniquesForMidi(m, offset).length).length;
+  el.importPlayability.textContent = total
+    ? `♪ ${playable} of ${total} notes playable on a ${picker.harpKey} harp` +
+      (playable < total ? " — try ±8va or a different harp key" : " ✓")
+    : "No notes in this track.";
+  el.importPlayability.classList.toggle("good", total > 0 && playable === total);
+}
+
+function confirmImport() {
+  const { abc, title } = transcribeTrack(picker.parsed, picker.trackIndex, {
+    collapse: picker.collapse,
+    shift: picker.shift,
+  });
+  const key = picker.harpKey;
+  closeImportPicker();
+  openEditorWithContent({ abc, title, key });
+  flash("Imported — review and Save");
+}
+
+function closeImportPicker() {
+  stopPreview();
+  el.importModal.classList.add("hidden");
+  picker = null;
+}
+
+async function previewAbc(abc) {
+  stopPreview();
+  if (typeof ABCJS === "undefined" || !ABCJS.synth.supportsAudio()) {
+    flash("Preview not supported here");
+    return;
+  }
+  try {
+    if (!previewDiv) {
+      previewDiv = document.createElement("div");
+      previewDiv.style.display = "none";
+      document.body.appendChild(previewDiv);
+    }
+    const visual = ABCJS.renderAbc(previewDiv, abc, {})[0];
+    previewCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (previewCtx.state === "suspended") await previewCtx.resume();
+    previewSynth = new ABCJS.synth.CreateSynth();
+    await previewSynth.init({ audioContext: previewCtx, visualObj: visual });
+    await previewSynth.prime();
+    previewSynth.start();
+  } catch (err) {
+    console.error(err);
+    flash("Preview error");
+  }
+}
+
+function stopPreview() {
+  try {
+    if (previewSynth) previewSynth.stop();
+    if (previewCtx) previewCtx.close();
+  } catch {}
+  previewSynth = null;
+  previewCtx = null;
+}
+
+async function runOnlineSearch() {
+  const q = el.onlineQuery.value.trim();
+  if (!q) return;
+  el.onlineResults.innerHTML = "<p class='muted'>Searching…</p>";
+  try {
+    const tunes = await searchTunes(q);
+    if (!tunes.length) {
+      el.onlineResults.innerHTML =
+        "<p class='empty'>No tunes found. This database is folk/traditional — modern songs won't appear. Import a MIDI for those.</p>";
+      return;
+    }
+    el.onlineResults.innerHTML = tunes
+      .map(
+        (t) =>
+          `<button class="song-card" data-tune-id="${t.id}" data-tune-name="${escapeHtml(
+            t.name
+          )}">
+            <div class="song-card-main">
+              <span class="song-card-title">${escapeHtml(t.name)}</span>
+              <span class="song-card-sub">${escapeHtml(t.type || "tune")}</span>
+            </div>
+            <span class="badge">import →</span>
+          </button>`
+      )
+      .join("");
+  } catch (err) {
+    console.error(err);
+    el.onlineResults.innerHTML =
+      "<p class='empty'>Search failed — check your connection.</p>";
+  }
+}
+
+async function loadOnlineTune(id, name) {
+  flash("Loading " + (name || "tune") + "…");
+  try {
+    const { abc, title } = await fetchTuneAbc(id);
+    openEditorWithContent({ abc, title });
+    flash("Loaded — review and Save");
+  } catch (err) {
+    console.error(err);
+    alert("Couldn't load that tune:\n" + (err.message || err));
   }
 }
 

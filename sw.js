@@ -1,12 +1,14 @@
 // Service worker: precache the app shell so Harp Trainer works offline once
 // installed to the home screen. Bump CACHE when you change any cached file.
-const CACHE = "harp-trainer-v2";
+const CACHE = "harp-trainer-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./manifest.webmanifest",
   "./vendor/abcjs-basic-min.js",
+  "./vendor/tonejs-midi.js",
+  "./vendor/fflate.min.js",
   "./js/app.js",
   "./js/tuner.js",
   "./js/songs.js",
@@ -14,6 +16,8 @@ const ASSETS = [
   "./js/notes.js",
   "./js/harmonica.js",
   "./js/tablature.js",
+  "./js/importers.js",
+  "./js/tunesearch.js",
   "./js/store.js",
   "./js/settings.js",
   "./icons/icon-192.png",

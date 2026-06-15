@@ -1,0 +1,354 @@
+// Convert imported music files into ABC notation for the editor.
+//
+// Two-phase for multi-track sources (MIDI / MusicXML):
+//   parseImport(file)  -> { kind:'tracks', ... , tracks:[meta] }  (show picker)
+//   transcribeTrack(parsed, trackIndex, {collapse, shift}) -> { abc, title, notes }
+// Single-line sources (.abc, audio) return { kind:'abc', abc, title }.
+//
+// Harmonica is monophonic, so transcription reduces any chords/overlap to a
+// single line: the highest ("top") or lowest ("bottom") note at each moment.
+
+import { autoCorrelate } from "./pitch.js";
+import { nameFromMidi } from "./notes.js";
+
+const SHARP = ["C", "^C", "D", "^D", "E", "F", "^F", "G", "^G", "A", "^A", "B"];
+const STEP_SEMITONE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+// MIDI number -> ABC pitch token (e.g. 60 -> "C", 78 -> "^f", 59 -> "B,").
+function midiToAbcToken(m) {
+  const pc = ((m % 12) + 12) % 12;
+  const oct = Math.floor(m / 12) - 1; // MIDI 60 = C4
+  const raw = SHARP[pc];
+  const acc = raw[0] === "^" ? "^" : "";
+  const letter = raw.replace("^", "");
+  return oct >= 5
+    ? acc + letter.toLowerCase() + "'".repeat(oct - 5)
+    : acc + letter + ",".repeat(4 - oct);
+}
+
+function sanitize(t) {
+  return String(t || "Imported").replace(/[\r\n]+/g, " ").trim() || "Imported";
+}
+
+// Flat list of {midi|null, len} (len in sixteenths) -> ABC body, with barlines
+// every `cellsPerBar` sixteenths and ties across barlines. L is 1/16.
+function eventsToAbc(events, cellsPerBar) {
+  let out = "";
+  let cell = 0;
+  let bars = 0;
+  for (const ev of events) {
+    let remaining = ev.len;
+    while (remaining > 0) {
+      const inBar = cell % cellsPerBar;
+      const take = Math.min(remaining, cellsPerBar - inBar);
+      const tok = ev.midi == null ? "z" : midiToAbcToken(ev.midi);
+      cell += take;
+      remaining -= take;
+      const crossing = remaining > 0 && ev.midi != null;
+      out += tok + (take > 1 ? take : "") + (crossing ? "-" : "") + " ";
+      if (cell % cellsPerBar === 0) {
+        out += "|";
+        bars++;
+        out += bars % 4 === 0 ? "\n" : " ";
+      }
+    }
+  }
+  return out.trim();
+}
+
+function assembleAbc(title, num, den, events, cellsPerBar) {
+  const body = eventsToAbc(events, cellsPerBar);
+  return `X:1\nT:${sanitize(title)}\nM:${num}/${den}\nL:1/16\nK:C\n${body}\n`;
+}
+
+// Collapse a chord (array of midis) to a single note per the chosen voice.
+function collapsePick(midis, mode) {
+  if (!midis || !midis.length) return null;
+  return mode === "bottom" ? Math.min(...midis) : Math.max(...midis);
+}
+
+// Apply transpose and gather the resulting (non-rest) note numbers.
+function shiftAndCollect(events, shift) {
+  const notes = [];
+  const out = events.map((e) => {
+    if (e.midi == null) return { midi: null, len: e.len };
+    const m = e.midi + shift;
+    notes.push(m);
+    return { midi: m, len: e.len };
+  });
+  return { events: out, notes };
+}
+
+// ---------- MIDI ----------
+// Reduce a track's (possibly overlapping) notes to a monophonic sixteenth grid.
+function midiEvents(notes, ppq, collapse) {
+  const tps16 = ppq / 4 || 1;
+  const top = collapse !== "bottom";
+  const cells = [];
+  let maxEnd = 0;
+  for (const n of notes) {
+    const s = Math.round(n.ticks / tps16);
+    let e = Math.round((n.ticks + n.durationTicks) / tps16);
+    if (e <= s) e = s + 1;
+    for (let i = s; i < e; i++) {
+      if (cells[i] == null) cells[i] = n.midi;
+      else cells[i] = top ? Math.max(cells[i], n.midi) : Math.min(cells[i], n.midi);
+    }
+    if (e > maxEnd) maxEnd = e;
+  }
+
+  // Mark cells where a note of the *chosen* line re-articulates, so repeated
+  // notes of the same pitch stay separate instead of merging into one held note.
+  const onsets = new Set();
+  for (const n of notes) {
+    const s = Math.round(n.ticks / tps16);
+    if (cells[s] === n.midi) onsets.add(s);
+  }
+
+  const events = [];
+  let i = 0;
+  while (i < maxEnd) {
+    const v = cells[i] == null ? null : cells[i];
+    let j = i + 1;
+    while (j < maxEnd && (cells[j] == null ? null : cells[j]) === v && !onsets.has(j)) j++;
+    events.push({ midi: v, len: j - i });
+    i = j;
+  }
+  return events;
+}
+
+function parseMidi(arrayBuffer, fallbackTitle) {
+  if (typeof Midi === "undefined") throw new Error("MIDI library not loaded.");
+  const midi = new Midi(arrayBuffer);
+  const ts = midi.header.timeSignatures[0];
+  const num = ts ? ts.timeSignature[0] : 4;
+  const den = ts ? ts.timeSignature[1] : 4;
+
+  const tracks = [];
+  midi.tracks.forEach((t, index) => {
+    if (!t.notes.length) return;
+    const ms = t.notes.map((n) => n.midi);
+    const low = Math.min(...ms);
+    const high = Math.max(...ms);
+    tracks.push({
+      index,
+      name: (t.name || (t.instrument && t.instrument.name) || "Track " + (index + 1)).trim(),
+      drums: t.channel === 9,
+      noteCount: t.notes.length,
+      low,
+      high,
+      lowLabel: nameFromMidi(low).label,
+      highLabel: nameFromMidi(high).label,
+    });
+  });
+  if (!tracks.length) throw new Error("No playable notes found in this MIDI file.");
+  return {
+    kind: "tracks",
+    source: "midi",
+    title: sanitize(midi.header.name || fallbackTitle),
+    num,
+    den,
+    _midi: midi,
+    tracks,
+  };
+}
+
+// ---------- MusicXML ----------
+function parseMusicXml(xmlText, fallbackTitle) {
+  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (doc.querySelector("parsererror")) throw new Error("This file isn't valid MusicXML.");
+  const partEls = [...doc.querySelectorAll("part")];
+  if (!partEls.length) throw new Error("No music part found in this MusicXML.");
+
+  const title =
+    doc.querySelector("work work-title")?.textContent ||
+    doc.querySelector("movement-title")?.textContent ||
+    fallbackTitle;
+
+  const nameById = {};
+  doc.querySelectorAll("part-list score-part").forEach((sp) => {
+    nameById[sp.getAttribute("id")] = sp.querySelector("part-name")?.textContent?.trim();
+  });
+
+  let num = 4;
+  let den = 4;
+  const parts = partEls
+    .map((part, idx) => {
+      const events = [];
+      let divisions = 1;
+      let lo = Infinity;
+      let hi = -Infinity;
+      let count = 0;
+      part.querySelectorAll(":scope > measure").forEach((m) => {
+        const div = m.querySelector("attributes > divisions");
+        if (div) divisions = +div.textContent || divisions;
+        const beats = m.querySelector("attributes > time > beats");
+        const bt = m.querySelector("attributes > time > beat-type");
+        if (beats) num = +beats.textContent || num;
+        if (bt) den = +bt.textContent || den;
+        m.querySelectorAll(":scope > note").forEach((n) => {
+          const durEl = n.querySelector("duration");
+          const dur = durEl ? +durEl.textContent : 0;
+          const sixteenths = Math.max(1, Math.round((dur / divisions) * 4));
+          const isChord = !!n.querySelector("chord");
+          if (n.querySelector("rest")) {
+            events.push({ midis: [], len: sixteenths });
+            return;
+          }
+          const step = n.querySelector("pitch > step")?.textContent;
+          const octave = +(n.querySelector("pitch > octave")?.textContent);
+          const alter = +(n.querySelector("pitch > alter")?.textContent || 0);
+          if (step == null || Number.isNaN(octave)) return;
+          const midi = (octave + 1) * 12 + STEP_SEMITONE[step] + alter;
+          count++;
+          lo = Math.min(lo, midi);
+          hi = Math.max(hi, midi);
+          if (isChord) {
+            const prev = events[events.length - 1];
+            if (prev && prev.midis) prev.midis.push(midi);
+            return;
+          }
+          events.push({ midis: [midi], len: sixteenths });
+        });
+      });
+      return {
+        name: nameById[part.getAttribute("id")] || "Part " + (idx + 1),
+        events,
+        count,
+        low: lo,
+        high: hi,
+      };
+    })
+    .filter((p) => p.count > 0);
+
+  if (!parts.length) throw new Error("No notes found in this MusicXML.");
+  const tracks = parts.map((p, index) => ({
+    index,
+    name: p.name,
+    drums: false,
+    noteCount: p.count,
+    low: p.low,
+    high: p.high,
+    lowLabel: nameFromMidi(p.low).label,
+    highLabel: nameFromMidi(p.high).label,
+  }));
+  return { kind: "tracks", source: "xml", title: sanitize(title), num, den, _parts: parts, tracks };
+}
+
+function mxlToXml(uint8) {
+  if (typeof fflate === "undefined") throw new Error("Unzip library not loaded.");
+  const files = fflate.unzipSync(uint8);
+  const dec = new TextDecoder();
+  let path = null;
+  if (files["META-INF/container.xml"]) {
+    const c = dec.decode(files["META-INF/container.xml"]);
+    path = new DOMParser()
+      .parseFromString(c, "application/xml")
+      .querySelector("rootfile")
+      ?.getAttribute("full-path");
+  }
+  if (!path || !files[path]) {
+    path = Object.keys(files).find(
+      (f) => /\.(musicxml|xml)$/i.test(f) && !f.startsWith("META-INF")
+    );
+  }
+  if (!path) throw new Error("No MusicXML found inside the .mxl archive.");
+  return dec.decode(files[path]);
+}
+
+// ---------- transcribe a chosen track ----------
+export function transcribeTrack(parsed, trackIndex, opts = {}) {
+  const collapse = opts.collapse === "bottom" ? "bottom" : "top";
+  const shift = opts.shift | 0;
+
+  let events;
+  if (parsed.source === "midi") {
+    const track = parsed._midi.tracks[trackIndex];
+    const notes = track.notes.slice().sort((a, b) => a.ticks - b.ticks);
+    const minTick = notes.length ? notes[0].ticks : 0;
+    const shifted = notes.map((n) => ({
+      midi: n.midi,
+      ticks: n.ticks - minTick,
+      durationTicks: n.durationTicks,
+    }));
+    events = midiEvents(shifted, parsed._midi.header.ppq, collapse);
+  } else {
+    events = parsed._parts[trackIndex].events.map((e) => ({
+      midi: collapsePick(e.midis, collapse),
+      len: e.len,
+    }));
+  }
+
+  const { events: finalEvents, notes } = shiftAndCollect(events, shift);
+  const cellsPerBar = parsed.num * (16 / parsed.den);
+  const abc = assembleAbc(parsed.title, parsed.num, parsed.den, finalEvents, cellsPerBar);
+  return { abc, title: parsed.title, notes };
+}
+
+// ---------- Audio (experimental, single melody line) ----------
+async function audioToAbc(arrayBuffer) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+  let buf;
+  try {
+    buf = await ctx.decodeAudioData(arrayBuffer);
+  } finally {
+    ctx.close();
+  }
+  const data = buf.getChannelData(0);
+  const sr = buf.sampleRate;
+  const win = 2048;
+  const hop = 1024;
+
+  const seq = [];
+  for (let i = 0; i + win <= data.length; i += hop) {
+    const f = autoCorrelate(data.subarray(i, i + win), sr);
+    seq.push(f > 0 ? Math.round(69 + 12 * Math.log2(f / 440)) : null);
+  }
+  const sm = seq.map((v, i) => {
+    if (i === 0 || i === seq.length - 1) return v;
+    const w = [seq[i - 1], v, seq[i + 1]].filter((x) => x != null).sort((a, b) => a - b);
+    return w.length ? w[Math.floor(w.length / 2)] : null;
+  });
+
+  const hopSec = hop / sr;
+  const sixteenthSec = 0.125; // assume 120 BPM
+  const events = [];
+  let i = 0;
+  while (i < sm.length) {
+    let j = i + 1;
+    while (j < sm.length && sm[j] === sm[i]) j++;
+    const frames = j - i;
+    if (frames >= 2) {
+      events.push({ midi: sm[i], len: Math.max(1, Math.round((frames * hopSec) / sixteenthSec)) });
+    }
+    i = j;
+  }
+  if (!events.some((e) => e.midi != null))
+    throw new Error("Couldn't detect a clear melody in this audio.");
+  return assembleAbc("Imported audio (rough)", 4, 4, events, 16);
+}
+
+// ---------- entry point ----------
+export async function parseImport(file) {
+  const lower = file.name.toLowerCase();
+  const base = file.name.replace(/\.[^.]+$/, "");
+
+  if (lower.endsWith(".abc")) return { kind: "abc", abc: await file.text(), title: base };
+  if (lower.endsWith(".mid") || lower.endsWith(".midi"))
+    return parseMidi(await file.arrayBuffer(), base);
+  if (lower.endsWith(".musicxml") || lower.endsWith(".xml"))
+    return parseMusicXml(await file.text(), base);
+  if (lower.endsWith(".mxl"))
+    return parseMusicXml(mxlToXml(new Uint8Array(await file.arrayBuffer())), base);
+  if (/\.(mp3|wav|m4a|aac|ogg|flac|webm)$/i.test(lower) || file.type.startsWith("audio/")) {
+    return {
+      kind: "abc",
+      abc: await audioToAbc(await file.arrayBuffer()),
+      title: base,
+      warning:
+        "Audio import is experimental: it follows only a single, clear melody line and the timing is approximate. Expect to clean up the result.",
+    };
+  }
+  throw new Error("Unsupported file type. Use .mid, .musicxml/.mxl, .abc, or audio.");
+}

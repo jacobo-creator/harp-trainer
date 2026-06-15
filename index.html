@@ -17,6 +17,8 @@
 
   <link rel="stylesheet" href="styles.css" />
   <script src="vendor/abcjs-basic-min.js" defer></script>
+  <script src="vendor/tonejs-midi.js" defer></script>
+  <script src="vendor/fflate.min.js" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -80,9 +82,27 @@
     <section id="view-songs" class="view hidden">
       <div id="songs-list-view">
         <div class="songs-toolbar">
-          <input id="song-search" type="search" placeholder="Search songs…" />
+          <input id="song-search" type="search" placeholder="Search my songs…" />
           <button id="song-new" class="primary">+ New</button>
         </div>
+        <div class="import-row">
+          <button id="song-import" class="ghost">📥 Import file</button>
+          <button id="song-find" class="ghost">🔎 Find tune online</button>
+          <input id="import-input" type="file"
+                 accept=".mid,.midi,.abc,.musicxml,.xml,.mxl,audio/*" hidden />
+        </div>
+
+        <div id="online-panel" class="online-panel hidden">
+          <div class="songs-toolbar">
+            <input id="online-query" type="search" placeholder="Song / tune title…" />
+            <button id="online-go" class="primary">Search</button>
+          </div>
+          <p class="hint">Searches <strong>thesession.org</strong> — a free, legal
+          database of folk &amp; traditional tunes. Modern/pop songs aren't
+          available here (copyright); for those, import a MIDI file instead.</p>
+          <div id="online-results" class="songs-list"></div>
+        </div>
+
         <div id="songs-list" class="songs-list"></div>
       </div>
 
@@ -149,6 +169,51 @@
       <span class="tab-ico">📖</span><span>Songs</span>
     </button>
   </nav>
+
+  <!-- ===== Import picker (choose which line to transcribe) ===== -->
+  <div id="import-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="import-modal-title">Import melody</h2>
+        <button id="import-cancel" class="ghost">Cancel</button>
+      </div>
+      <p class="hint">You play one note at a time, so pick the single line to
+      turn into tabs. Preview each, then import.</p>
+
+      <div id="import-tracks" class="import-tracks"></div>
+
+      <div class="import-options">
+        <label class="field">
+          <span>Harp key</span>
+          <select id="import-harp"></select>
+        </label>
+        <label class="field">
+          <span>Chords → use</span>
+          <select id="import-collapse">
+            <option value="top">Top (highest) note</option>
+            <option value="bottom">Bottom (lowest) note</option>
+          </select>
+        </label>
+        <div class="field">
+          <span>Transpose (to fit the harp)</span>
+          <div class="transpose-row">
+            <button type="button" data-shift="-12" class="ghost">−8va</button>
+            <button type="button" data-shift="-1" class="ghost">−1</button>
+            <span id="import-shift" class="shift-readout">0</span>
+            <button type="button" data-shift="1" class="ghost">+1</button>
+            <button type="button" data-shift="12" class="ghost">+8va</button>
+          </div>
+        </div>
+      </div>
+
+      <p id="import-playability" class="playability"></p>
+
+      <div class="modal-actions">
+        <button id="import-preview" class="ghost">▶ Preview</button>
+        <button id="import-confirm" class="primary">Import this line</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
 

@@ -22,6 +22,20 @@ weekly re-signing like sideloaded `.ipa` files need.
   - **Photos** of printed sheet music
   - free-form practice notes
   - All stored **on-device** (IndexedDB) and searchable.
+- **Import music → auto-tabs** — load a file and the app builds editable
+  notation + harmonica tabs:
+  - **MIDI** (`.mid`) and **MusicXML** (`.musicxml`/`.mxl`) open a **track
+    picker**: choose which line to transcribe (with note count + pitch range),
+    **preview** each, pick **top/bottom** note for chords, **transpose** to fit
+    the harp, and see a live "*N of M notes playable on your harp*" readout
+    before importing. Because a harmonica plays one note at a time, you choose
+    the exact line — no more guessing the wrong track.
+  - **ABC** (`.abc`) — dropped straight into the editor
+  - **Audio** (`.mp3`/`.wav`, *experimental*) — tracks a single clear melody
+    line; timing is approximate, expect to edit.
+- **Find tunes online** — search the free, legal [thesession.org](https://thesession.org)
+  database (folk/traditional) and load any result as staff + tabs. (Modern/pop
+  songs aren't available via any open notes API — import a MIDI for those.)
 - **Works offline** once installed to the home screen.
 
 ## Put it on your iPhone
