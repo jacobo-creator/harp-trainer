@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <title>Harp Trainer</title>
+  <meta name="description" content="Harmonica tuner & tab library — practice bends, see your notes, save tabs and sheet music." />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" href="icons/favicon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Harp Trainer" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <script src="vendor/abcjs-basic-min.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <h1>Harp Trainer</h1>
+    </div>
+    <label class="harp-select">
+      <span>Harp</span>
+      <select data-harp-key aria-label="Harmonica key"></select>
+    </label>
+  </header>
+
+  <main>
+    <!-- ================= TUNER ================= -->
+    <section id="view-tuner" class="view">
+      <div id="gauge" class="gauge">
+        <div class="note-display">
+          <span id="note-name" class="note-name">–</span>
+          <sub id="note-octave" class="note-octave"></sub>
+        </div>
+        <div id="in-tune" class="in-tune"></div>
+
+        <div class="meter">
+          <div class="meter-track">
+            <span class="tick tick-c">0</span>
+            <span class="tick tick-l">-50</span>
+            <span class="tick tick-r">+50</span>
+            <div class="meter-center"></div>
+            <div id="needle" class="needle"></div>
+          </div>
+          <div class="meter-readout">
+            <span id="cents-value" class="cents"></span>
+            <span id="freq-value" class="freq">— Hz</span>
+          </div>
+        </div>
+
+        <div id="technique" class="technique"></div>
+      </div>
+
+      <div class="tuner-controls">
+        <button id="tuner-toggle" class="primary">Start tuner</button>
+        <label class="a4">
+          A4
+          <input id="a4-ref" type="number" value="440" min="430" max="450" step="1" />
+        </label>
+      </div>
+      <p id="tuner-status" class="status">Tap “Start tuner” and allow microphone access.</p>
+
+      <details class="help">
+        <summary>How the technique hint works</summary>
+        <p>Pick your harmonica's key above. As you play, the app shows which
+        <strong>hole</strong> and <strong>breath</strong> you're hitting —
+        <code>+4</code> = blow 4, <code>-4</code> = draw 4, and apostrophes mark
+        bends (<code>-3'</code> = ½-step bend, <code>-3''</code> = whole-step).
+        Watch the needle to train your bends to the right pitch.</p>
+      </details>
+    </section>
+
+    <!-- ================= SONGS ================= -->
+    <section id="view-songs" class="view hidden">
+      <div id="songs-list-view">
+        <div class="songs-toolbar">
+          <input id="song-search" type="search" placeholder="Search songs…" />
+          <button id="song-new" class="primary">+ New</button>
+        </div>
+        <div id="songs-list" class="songs-list"></div>
+      </div>
+
+      <div id="song-editor-view" class="editor hidden">
+        <div class="editor-bar">
+          <button id="editor-back" class="ghost">‹ Back</button>
+          <div class="editor-bar-actions">
+            <button id="editor-delete" class="danger" style="display:none">Delete</button>
+            <button id="editor-save" class="primary">Save</button>
+          </div>
+        </div>
+
+        <input id="song-title" class="title-input" placeholder="Song title" />
+
+        <label class="field">
+          <span>Harmonica key</span>
+          <select id="song-key"></select>
+        </label>
+
+        <label class="field">
+          <span>Harmonica tab</span>
+          <textarea id="song-tab" rows="4" placeholder="e.g.  -4 -4 -5 6  -5 -4 +4"></textarea>
+          <small class="hint">+ blow · − draw · ' bend (e.g. -3'' = whole-step draw bend)</small>
+        </label>
+
+        <div class="field">
+          <span class="field-label-row">
+            <span>Sheet music (ABC notation)</span>
+            <button id="abc-template" class="link-btn">Insert template</button>
+          </span>
+          <textarea id="song-abc" rows="5" placeholder="X:1&#10;T:Title&#10;K:C&#10;C D E F | G A B c |"></textarea>
+          <label class="tab-toggle">
+            <input type="checkbox" id="tab-overlay-toggle" checked />
+            Show harmonica tab under each note (uses the key above)
+          </label>
+          <div class="notation-wrap">
+            <div id="song-notation" class="notation"></div>
+            <button id="abc-play" class="ghost" disabled>▶ Play</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label-row">
+            <span>Photos of sheet music</span>
+            <label class="link-btn" for="photo-input">+ Add photo</label>
+          </span>
+          <input id="photo-input" type="file" accept="image/*" multiple hidden />
+          <div id="song-photos" class="photos"></div>
+        </div>
+
+        <label class="field">
+          <span>Notes</span>
+          <textarea id="song-notes" rows="3" placeholder="Practice notes, position, tempo…"></textarea>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-view="tuner" class="active">
+      <span class="tab-ico">🎵</span><span>Tuner</span>
+    </button>
+    <button data-view="songs">
+      <span class="tab-ico">📖</span><span>Songs</span>
+    </button>
+  </nav>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
