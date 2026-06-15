@@ -1,6 +1,6 @@
 // Live tuner: microphone -> pitch -> note + cents + harmonica technique.
 
-import { autoCorrelate, Smoother } from "./pitch.js";
+import { detectPitch, Smoother } from "./pitch.js";
 import { noteFromFrequency } from "./notes.js";
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey } from "./settings.js";
@@ -45,10 +45,10 @@ async function start() {
   // appears and getUserMedia hangs — surface a hint instead of waiting forever.
   let slowHint = setTimeout(() => {
     el.status.innerHTML =
-      "Still waiting for permission… If you opened this from the Home Screen, " +
-      "open <strong>" +
-      location.host +
-      "</strong> in <strong>Safari</strong> instead, and check Settings → Safari → Microphone is set to “Ask.”";
+      "Still waiting for the mic… iPhone Home-Screen apps can't show the prompt " +
+      "themselves. In <strong>Safari</strong>, open this site → tap " +
+      "<strong>“aA”</strong> → Website Settings → Microphone → " +
+      "<strong>Allow</strong> (this site only), then reopen the app.";
   }, 5000);
 
   try {
@@ -80,10 +80,10 @@ async function start() {
     const name = (err && err.name) || "";
     if (name === "NotAllowedError" || name === "SecurityError") {
       el.status.innerHTML =
-        "Microphone permission was denied. On iPhone: Settings → Safari → " +
-        "Microphone → <strong>Ask</strong>, then reload. If you tapped “Don't " +
-        "Allow” before, clear this site under Settings → Safari → Advanced → " +
-        "Website Data and try again.";
+        "No microphone permission. On iPhone, grant it for just this site: in " +
+        "<strong>Safari</strong>, tap <strong>“aA”</strong> in the address bar → " +
+        "Website Settings → Microphone → <strong>Allow</strong>, then reopen. " +
+        "(Home-Screen apps can't show the prompt themselves.)";
     } else if (name === "NotFoundError" || name === "OverconstrainedError") {
       el.status.textContent = "No microphone was found on this device.";
     } else {
@@ -126,7 +126,7 @@ function reset() {
 function loop() {
   if (!running) return;
   analyser.getFloatTimeDomainData(buf);
-  const raw = autoCorrelate(buf, audioCtx.sampleRate);
+  const raw = detectPitch(buf, audioCtx.sampleRate);
   const a4 = parseFloat(el.a4.value) || 440;
 
   if (raw === -1) {

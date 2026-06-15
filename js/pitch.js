@@ -1,59 +1,74 @@
-// Monophonic pitch detection via normalized autocorrelation with
-// parabolic interpolation. Returns frequency in Hz, or -1 when no clear
-// pitch is present (silence / noise). Tuned for a single sustained tone
-// like a harmonica reed.
+// Monophonic pitch detection via the YIN algorithm (de Cheveigné & Kawahara).
+// YIN's cumulative-mean-normalized difference function avoids the octave
+// errors that plague raw autocorrelation — important for a harmonica's
+// harmonic-rich mid-range (holes 4–6, ~520–880 Hz on a C harp). Returns the
+// frequency in Hz, or -1 when there's no clear pitch (silence / noise).
 
-export function autoCorrelate(buf, sampleRate) {
+const YIN_THRESHOLD = 0.12;
+
+export function detectPitch(buf, sampleRate) {
   const SIZE = buf.length;
+  const W = SIZE >> 1; // analysis window / max lag
 
-  // RMS gate: ignore frames that are too quiet to be a played note.
+  // RMS gate: ignore frames too quiet to be a played note.
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.01) return -1;
 
-  // Trim near-silent edges of the window.
-  let r1 = 0;
-  let r2 = SIZE - 1;
-  const thres = 0.2;
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-  }
-  for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-  }
-  const b = buf.slice(r1, r2);
-  const n = b.length;
-  if (n < 2) return -1;
+  // Only search lags within the musical range we care about (~50–3000 Hz).
+  const maxTau = Math.min(W, Math.ceil(sampleRate / 50));
+  const minTau = Math.max(2, Math.floor(sampleRate / 3000));
 
-  const c = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
+  // 1) Difference function d(tau).
+  const yin = new Float32Array(maxTau);
+  for (let tau = 1; tau < maxTau; tau++) {
     let sum = 0;
-    for (let j = 0; j < n - i; j++) sum += b[j] * b[j + i];
-    c[i] = sum;
+    for (let j = 0; j < W; j++) {
+      const diff = buf[j] - buf[j + tau];
+      sum += diff * diff;
+    }
+    yin[tau] = sum;
   }
 
-  // Walk down from the zero-lag peak, then find the next strongest peak.
-  let d = 0;
-  while (d < n - 1 && c[d] > c[d + 1]) d++;
-  let maxval = -1;
-  let maxpos = -1;
-  for (let i = d; i < n; i++) {
-    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  // 2) Cumulative mean normalized difference d'(tau).
+  yin[0] = 1;
+  let running = 0;
+  for (let tau = 1; tau < maxTau; tau++) {
+    running += yin[tau];
+    yin[tau] = running === 0 ? 1 : (yin[tau] * tau) / running;
   }
-  if (maxpos <= 0) return -1;
 
-  let T0 = maxpos;
-  // Parabolic interpolation around the peak for sub-sample accuracy.
-  const x1 = c[T0 - 1] || 0;
-  const x2 = c[T0];
-  const x3 = c[T0 + 1] || 0;
-  const a = (x1 + x3 - 2 * x2) / 2;
-  const bb = (x3 - x1) / 2;
-  if (a) T0 = T0 - bb / (2 * a);
+  // 3) Absolute threshold: first dip below threshold, then walk to its bottom.
+  let tau = -1;
+  for (let t = minTau; t < maxTau; t++) {
+    if (yin[t] < YIN_THRESHOLD) {
+      while (t + 1 < maxTau && yin[t + 1] < yin[t]) t++;
+      tau = t;
+      break;
+    }
+  }
+  if (tau === -1) {
+    // No confident dip — fall back to the global minimum, if it's clear enough.
+    let min = Infinity;
+    let pos = -1;
+    for (let t = minTau; t < maxTau; t++) {
+      if (yin[t] < min) { min = yin[t]; pos = t; }
+    }
+    if (pos === -1 || min > 0.5) return -1;
+    tau = pos;
+  }
 
-  const freq = sampleRate / T0;
-  if (freq < 50 || freq > 5000) return -1; // outside musical range we care about
+  // 4) Parabolic interpolation around the dip for sub-sample precision.
+  let betterTau = tau;
+  const x0 = tau > 0 ? yin[tau - 1] : yin[tau];
+  const x2 = tau + 1 < maxTau ? yin[tau + 1] : yin[tau];
+  const a = x0 + x2 - 2 * yin[tau];
+  const b = (x2 - x0) / 2;
+  if (a) betterTau = tau - b / (2 * a);
+
+  const freq = sampleRate / betterTau;
+  if (freq < 50 || freq > 5000) return -1;
   return freq;
 }
 

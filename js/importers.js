@@ -8,7 +8,7 @@
 // Harmonica is monophonic, so transcription reduces any chords/overlap to a
 // single line: the highest ("top") or lowest ("bottom") note at each moment.
 
-import { autoCorrelate } from "./pitch.js";
+import { detectPitch } from "./pitch.js";
 import { nameFromMidi } from "./notes.js";
 
 const SHARP = ["C", "^C", "D", "^D", "E", "F", "^F", "G", "^G", "A", "^A", "B"];
@@ -302,7 +302,7 @@ async function audioToAbc(arrayBuffer) {
 
   const seq = [];
   for (let i = 0; i + win <= data.length; i += hop) {
-    const f = autoCorrelate(data.subarray(i, i + win), sr);
+    const f = detectPitch(data.subarray(i, i + win), sr);
     seq.push(f > 0 ? Math.round(69 + 12 * Math.log2(f / 440)) : null);
   }
   const sm = seq.map((v, i) => {
