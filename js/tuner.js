@@ -35,6 +35,22 @@ export function initTuner() {
 }
 
 async function start() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    el.status.textContent =
+      "This browser can't reach the microphone here. Open the page in Safari over HTTPS.";
+    return;
+  }
+
+  // On iOS Home-Screen (standalone) apps the mic prompt sometimes never
+  // appears and getUserMedia hangs — surface a hint instead of waiting forever.
+  let slowHint = setTimeout(() => {
+    el.status.innerHTML =
+      "Still waiting for permission… If you opened this from the Home Screen, " +
+      "open <strong>" +
+      location.host +
+      "</strong> in <strong>Safari</strong> instead, and check Settings → Safari → Microphone is set to “Ask.”";
+  }, 5000);
+
   try {
     el.status.textContent = "Requesting microphone…";
     micStream = await navigator.mediaDevices.getUserMedia({
@@ -44,6 +60,7 @@ async function start() {
         autoGainControl: false,
       },
     });
+    clearTimeout(slowHint);
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") await audioCtx.resume();
     const source = audioCtx.createMediaStreamSource(micStream);
@@ -59,8 +76,24 @@ async function start() {
     el.gauge.classList.add("live");
     loop();
   } catch (err) {
-    el.status.textContent =
-      "Microphone blocked. Allow mic access in Safari settings, and make sure the page is served over HTTPS.";
+    clearTimeout(slowHint);
+    const name = (err && err.name) || "";
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      el.status.innerHTML =
+        "Microphone permission was denied. On iPhone: Settings → Safari → " +
+        "Microphone → <strong>Ask</strong>, then reload. If you tapped “Don't " +
+        "Allow” before, clear this site under Settings → Safari → Advanced → " +
+        "Website Data and try again.";
+    } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+      el.status.textContent = "No microphone was found on this device.";
+    } else {
+      el.status.textContent =
+        "Couldn't start the microphone (" +
+        (name || "error") +
+        "). Make sure you're on HTTPS — and on iPhone, open it in Safari rather than from the Home Screen.";
+    }
+    el.toggle.textContent = "Start tuner";
+    el.toggle.classList.remove("active");
     console.error(err);
   }
 }
