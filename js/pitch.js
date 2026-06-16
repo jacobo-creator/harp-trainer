@@ -6,15 +6,16 @@
 
 const YIN_THRESHOLD = 0.12;
 
-export function detectPitch(buf, sampleRate) {
+export function detectPitch(buf, sampleRate, rmsGate = 0.02) {
   const SIZE = buf.length;
   const W = SIZE >> 1; // analysis window / max lag
 
-  // RMS gate: ignore frames too quiet to be a played note.
+  // RMS gate: ignore frames too quiet to be a played note. A higher gate makes
+  // the tuner require a louder note, rejecting breath/wind noise across the mic.
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return -1;
+  if (rms < rmsGate) return -1;
 
   // Only search lags within the musical range we care about (~50–3000 Hz).
   const maxTau = Math.min(W, Math.ceil(sampleRate / 50));
@@ -55,7 +56,9 @@ export function detectPitch(buf, sampleRate) {
     for (let t = minTau; t < maxTau; t++) {
       if (yin[t] < min) { min = yin[t]; pos = t; }
     }
-    if (pos === -1 || min > 0.5) return -1;
+    // Require a reasonably periodic (tonal) signal — rejects aperiodic breath
+    // and wind noise, which never dips this low.
+    if (pos === -1 || min > 0.3) return -1;
     tau = pos;
   }
 

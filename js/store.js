@@ -1,6 +1,8 @@
 // Tiny promise-based IndexedDB wrapper for saved songs.
 // A song: { id, title, key, tab, abc, notes, photos:[dataURL], createdAt, updatedAt }
 
+import { STARTER_SONGS } from "./starter-songs.js";
+
 const DB_NAME = "harp-trainer";
 const DB_VERSION = 1;
 const STORE = "songs";
@@ -67,4 +69,18 @@ export async function saveSong(song) {
 export async function deleteSong(id) {
   const store = await tx("readwrite");
   return asPromise(store.delete(id));
+}
+
+// Add the starter songs once, ever (a localStorage flag means deleting them
+// doesn't bring them back on the next launch).
+export async function seedStarterSongs() {
+  if (localStorage.getItem("harp-seeded")) return;
+  localStorage.setItem("harp-seeded", "1");
+  for (const song of STARTER_SONGS) {
+    try {
+      await saveSong({ ...song });
+    } catch (e) {
+      console.warn("Could not seed song", song.id, e);
+    }
+  }
 }

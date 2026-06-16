@@ -12,6 +12,7 @@ let rafId = null;
 let running = false;
 const smoother = new Smoother(0.3);
 let buf = null;
+let micGate = parseFloat(localStorage.getItem("mic-gate")) || 0.025;
 
 const el = {};
 
@@ -27,6 +28,15 @@ export function initTuner() {
   el.technique = document.getElementById("technique");
   el.a4 = document.getElementById("a4-ref");
   el.gauge = document.getElementById("gauge");
+  el.sensitivity = document.getElementById("mic-sensitivity");
+
+  if (el.sensitivity) {
+    el.sensitivity.value = String(micGate);
+    el.sensitivity.addEventListener("change", () => {
+      micGate = parseFloat(el.sensitivity.value) || 0.025;
+      localStorage.setItem("mic-gate", String(micGate));
+    });
+  }
 
   el.toggle.addEventListener("click", () => (running ? stop() : start()));
   // The detection loop re-reads the harp key every frame, so changing it
@@ -126,7 +136,7 @@ function reset() {
 function loop() {
   if (!running) return;
   analyser.getFloatTimeDomainData(buf);
-  const raw = detectPitch(buf, audioCtx.sampleRate);
+  const raw = detectPitch(buf, audioCtx.sampleRate, micGate);
   const a4 = parseFloat(el.a4.value) || 440;
 
   if (raw === -1) {

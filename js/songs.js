@@ -2,7 +2,7 @@
 // harmonica tab text, ABC notation (rendered + playable via abcjs), free
 // notes, and photos of sheet music.
 
-import { getAllSongs, getSong, saveSong, deleteSong } from "./store.js";
+import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./store.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey } from "./settings.js";
 import { renderTabbedNotation } from "./tablature.js";
@@ -138,7 +138,7 @@ export function initSongs() {
     }
   });
 
-  renderList();
+  seedStarterSongs().then(renderList, renderList);
 }
 
 export async function refreshSongs() {

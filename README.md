@@ -8,7 +8,11 @@ weekly re-signing like sideloaded `.ipa` files need.
 
 - **Live tuner** — play a note and it shows the note name, how many cents
   sharp/flat you are (with a moving needle), and the exact frequency. Great
-  for practicing **bends** and **fast note changes**.
+  for practicing **bends** and **fast note changes**. Pitch detection uses the
+  **YIN** algorithm (robust across the harp's range), with a **Mic
+  sensitivity** control (High/Medium/Low) that ignores breath/wind noise.
+- **Starter songs** are seeded on first launch (scale, Twinkle, Mary Had a
+  Little Lamb, Ode to Joy) so there's something to play right away.
 - **Harmonica technique hint** — pick your harp's key and the tuner tells you
   which **hole + breath + bend** you're playing (e.g. `-3''` = draw 3,
   whole-step bend). Works for all 12 keys (G through F#).
