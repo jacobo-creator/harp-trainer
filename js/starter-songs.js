@@ -1,12 +1,17 @@
-// A few first-position tunes for a C harmonica, seeded on first launch so the
-// library isn't empty. All sit in the clean middle octave (holes 4–7), no
-// bends, so they're playable straight away and show off the tab overlay.
+// Songs seeded on first launch so the library isn't empty. The simple tunes
+// sit in the clean middle octave (holes 4–7) of a C harp; the classical pieces
+// add variety across difficulty levels. `difficulty` is "easy" | "medium" |
+// "hard". Harder pieces may contain a few notes that aren't reachable on a
+// diatonic harp (shown as note names on the staff) — that's part of why
+// they're hard. Everything is editable after seeding.
 
 export const STARTER_SONGS = [
+  // ---------------- easy: first-position basics ----------------
   {
     id: "starter-scale",
     title: "C Major Scale (1st position)",
     key: "C",
+    difficulty: "easy",
     tab: "+4 -4 +5 -5  +6 -6 -7 +7    +7 -7 -6 +6  -5 +5 -4 +4",
     abc:
       "X:1\nT:C Major Scale\nM:4/4\nL:1/4\nK:C\n" +
@@ -18,6 +23,7 @@ export const STARTER_SONGS = [
     id: "starter-twinkle",
     title: "Twinkle, Twinkle, Little Star",
     key: "C",
+    difficulty: "easy",
     tab:
       "+4 +4 +6 +6  -6 -6 +6    -5 -5 +5 +5  -4 -4 +4    " +
       "+6 +6 -5 -5  +5 +5 -4    +6 +6 -5 -5  +5 +5 -4    " +
@@ -32,6 +38,7 @@ export const STARTER_SONGS = [
     id: "starter-mary",
     title: "Mary Had a Little Lamb",
     key: "C",
+    difficulty: "easy",
     tab:
       "+5 -4 +4 -4  +5 +5 +5    -4 -4 -4    +5 +6 +6    " +
       "+5 -4 +4 -4  +5 +5 +5 +5  -4 -4 +5 -4  +4",
@@ -41,33 +48,23 @@ export const STARTER_SONGS = [
     notes: "Just three notes to start: +4 (C), -4 (D), +5 (E).",
   },
   {
-    id: "starter-ode",
-    title: "Ode to Joy (Beethoven)",
-    key: "C",
-    tab:
-      "+5 +5 -5 +6  +6 -5 +5 -4  +4 +4 -4 +5  +5 -4 -4    " +
-      "+5 +5 -5 +6  +6 -5 +5 -4  +4 +4 -4 +5  -4 +4 +4",
-    abc:
-      "X:1\nT:Ode to Joy\nM:4/4\nL:1/4\nK:C\n" +
-      "e e f g | g f e d | c c d e | e d d2 | e e f g | g f e d | c c d e | d c c2 |\n",
-    notes: "Holes 4–6. Watch the needle to keep each note in tune.",
-  },
-  {
     id: "starter-jingle",
     title: "Jingle Bells (chorus)",
     key: "C",
+    difficulty: "easy",
     tab:
       "+5 +5 +5    +5 +5 +5    +5 +6 +4 -4  +5    " +
       "-5 -5 -5 -5  -5 +5 +5 +5  +5 -4 -4 +5  -4 +6",
     abc:
       "X:1\nT:Jingle Bells\nM:4/4\nL:1/4\nK:C\n" +
       "e e e2 | e e e2 | e g c d | e4 | f f f f | f e e e | e d d e | d2 g2 |\n",
-    notes: "Famous chorus, holes 4–6. The '-8va' transpose makes a low version.",
+    notes: "Famous chorus, holes 4–6.",
   },
   {
     id: "starter-frere",
     title: "Frère Jacques",
     key: "C",
+    difficulty: "easy",
     tab:
       "+4 -4 +5 +4  +4 -4 +5 +4  +5 -5 +6  +5 -5 +6  " +
       "+6 -6 +6 -5 +5 +4  +6 -6 +6 -5 +5 +4  +4 -2 +4  +4 -2 +4",
@@ -80,6 +77,7 @@ export const STARTER_SONGS = [
     id: "starter-london",
     title: "London Bridge",
     key: "C",
+    difficulty: "easy",
     tab:
       "+6 -6 +6 -5  +5 -5 +6  -4 +5 -5  +5 -5 +6  " +
       "+6 -6 +6 -5  +5 -5 +6  -4 +6 -5 +5  +4",
@@ -92,6 +90,7 @@ export const STARTER_SONGS = [
     id: "starter-macdonald",
     title: "Old MacDonald",
     key: "C",
+    difficulty: "easy",
     tab:
       "+4 +4 +4 +6  -6 -6 +6  +5 +5 -4 -4  +4  " +
       "+4 +4 +4 +6  -6 -6 +6  +5 +5 -4 -4  +4",
@@ -99,5 +98,93 @@ export const STARTER_SONGS = [
       "X:1\nT:Old MacDonald\nM:4/4\nL:1/4\nK:C\n" +
       "c c c g | a a g2 | e e d d | c4 | c c c g | a a g2 | e e d d | c4 |\n",
     notes: "Easy first-position tune on holes 4–6.",
+  },
+
+  // ---------------- classical: easy ----------------
+  {
+    id: "starter-ode",
+    title: "Ode to Joy — Beethoven",
+    key: "C",
+    difficulty: "easy",
+    tab:
+      "+5 +5 -5 +6  +6 -5 +5 -4  +4 +4 -4 +5  +5 -4 -4    " +
+      "+5 +5 -5 +6  +6 -5 +5 -4  +4 +4 -4 +5  -4 +4 +4",
+    abc:
+      "X:1\nT:Ode to Joy\nM:4/4\nL:1/4\nK:C\n" +
+      "e e f g | g f e d | c c d e | e d d2 | e e f g | g f e d | c c d e | d c c2 |\n",
+    notes: "Beethoven's 9th. Holes 4–6, no bends — watch the needle on each note.",
+  },
+  {
+    id: "classical-beethoven5",
+    title: "Symphony No. 5 (motif) — Beethoven",
+    key: "C",
+    difficulty: "easy",
+    tab: "+6 +6 +6 +5    -5 -5 -5 -4",
+    abc:
+      "X:1\nT:Symphony No.5 motif\nM:2/4\nL:1/8\nK:C\n" +
+      "z g g g | e2 | z f f f | d2 |\n",
+    notes: "The famous four-note 'fate' motif (adapted to C major).",
+  },
+  {
+    id: "classical-surprise",
+    title: "Surprise Symphony (theme) — Haydn",
+    key: "C",
+    difficulty: "easy",
+    tab: "+4 +4 +5 +5  +6 +6 +5  -5 -5 -4 -4  +4",
+    abc:
+      "X:1\nT:Surprise Symphony\nM:4/4\nL:1/4\nK:C\n" +
+      "c c e e | g g e2 | f f d d | c4 |\n",
+    notes: "Haydn's gentle theme — then the famous loud 'surprise' chord.",
+  },
+
+  // ---------------- classical: medium ----------------
+  {
+    id: "classical-canon",
+    title: "Canon in D (theme) — Pachelbel",
+    key: "C",
+    difficulty: "medium",
+    tab:
+      "+8 -8 +7 -7  -6 +6 -6 -7  +7 -7 -6 +6  -5 +5 -4 +4",
+    abc:
+      "X:1\nT:Canon (Pachelbel)\nM:4/4\nL:1/4\nK:C\n" +
+      "e' d' c' b | a g a b | c' b a g | f e d c |\n",
+    notes: "The well-known descending line, in C for the upper register (holes 4–8).",
+  },
+  {
+    id: "classical-danube",
+    title: "The Blue Danube — J. Strauss II",
+    key: "C",
+    difficulty: "medium",
+    tab: "+4 +5 +6  +6  +4 +5 +6  +6  -6 -6  -5 -5",
+    abc:
+      "X:1\nT:The Blue Danube\nM:3/4\nL:1/4\nK:C\n" +
+      "c e g | g2 z | c e g | g2 z | a2 z | a2 z | f2 z | f2 z |\n",
+    notes: "Waltz time — pair it with the metronome at 3 beats per bar.",
+  },
+
+  // ---------------- classical: hard ----------------
+  {
+    id: "classical-furelise",
+    title: "Für Elise (opening) — Beethoven",
+    key: "C",
+    difficulty: "hard",
+    tab: "",
+    abc:
+      "X:1\nT:Fur Elise\nM:2/4\nL:1/8\nK:Am\n" +
+      "e ^d e ^d | e B d c | A2 z2 | C E A B | E ^G B c | e ^d e ^d | e B d c | A2 z2 |\n",
+    notes:
+      "The D♯ and G♯ are chromatic notes — the D♯ isn't on a standard C harp (shown as a note name); G♯ is a deep hole-3 bend. A real challenge.",
+  },
+  {
+    id: "classical-turca",
+    title: "Rondo alla Turca (theme) — Mozart",
+    key: "C",
+    difficulty: "hard",
+    tab: "",
+    abc:
+      "X:1\nT:Rondo alla Turca\nM:2/4\nL:1/16\nK:Am\n" +
+      "BA^GA c2 z2 | dcBc e2 z2 | fe^de B2 z2 | cBAB d2 z2 |\n",
+    notes:
+      "Fast turning figures with chromatic G♯/D♯. Slow it right down with the metronome first.",
   },
 ];

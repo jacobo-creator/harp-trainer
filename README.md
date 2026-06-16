@@ -16,9 +16,13 @@ weekly re-signing like sideloaded `.ipa` files need.
 - **Transpose** — in the song editor, shift any song up/down by semitones or
   octaves (`−8va`…`+8va`). Works for everything: typed, imported, or online
   tunes — handy for fitting a melody to your harp's range.
-- **Starter songs** are seeded on first launch (C scale, Twinkle, Mary Had a
-  Little Lamb, Ode to Joy, Jingle Bells, Frère Jacques, London Bridge, Old
-  MacDonald) so there's something to play right away.
+- **Difficulty levels** — each song can be flagged **Easy / Medium / Hard**,
+  shown as a colored badge and filterable in the song list.
+- **Starter songs** are seeded on first launch — beginner tunes (C scale,
+  Twinkle, Mary, Ode to Joy, Jingle Bells, Frère Jacques, London Bridge, Old
+  MacDonald) plus a spread of **classical** pieces across difficulties
+  (Beethoven's 5th & Für Elise, Haydn's Surprise, Pachelbel's Canon, The Blue
+  Danube, Mozart's Rondo alla Turca).
 - **Harmonica technique hint** — pick your harp's key and the tuner tells you
   which **hole + breath + bend** you're playing (e.g. `-3''` = draw 3,
   whole-step bend). Works for all 12 keys (G through F#).

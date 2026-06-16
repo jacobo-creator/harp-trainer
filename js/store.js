@@ -100,4 +100,23 @@ export async function seedStarterSongs() {
     }
   }
   localStorage.setItem("harp-seeded-ids", JSON.stringify([...done]));
+  await backfillDifficulty();
+}
+
+// One-time: give already-seeded starter songs their difficulty flag (added in a
+// later version) without disturbing any of their other fields or user edits.
+async function backfillDifficulty() {
+  if (localStorage.getItem("harp-diff-backfill")) return;
+  localStorage.setItem("harp-diff-backfill", "1");
+  for (const def of STARTER_SONGS) {
+    if (!def.difficulty) continue;
+    try {
+      const existing = await getSong(def.id);
+      if (existing && !existing.difficulty) {
+        await saveSong({ ...existing, difficulty: def.difficulty });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 }

@@ -101,6 +101,13 @@
           <input id="import-input" type="file" hidden />
         </div>
 
+        <div class="diff-filter" id="diff-filter">
+          <button class="diff-chip active" data-diff="all">All</button>
+          <button class="diff-chip" data-diff="easy">Easy</button>
+          <button class="diff-chip" data-diff="medium">Medium</button>
+          <button class="diff-chip" data-diff="hard">Hard</button>
+        </div>
+
         <div id="online-panel" class="online-panel hidden">
           <div class="songs-toolbar">
             <input id="online-query" type="search" placeholder="Song / tune title…" />
@@ -126,10 +133,21 @@
 
         <input id="song-title" class="title-input" placeholder="Song title" />
 
-        <label class="field">
-          <span>Harmonica key</span>
-          <select id="song-key"></select>
-        </label>
+        <div class="field-pair">
+          <label class="field">
+            <span>Harmonica key</span>
+            <select id="song-key"></select>
+          </label>
+          <label class="field">
+            <span>Difficulty</span>
+            <select id="song-difficulty">
+              <option value="">— none —</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
 
         <label class="field">
           <span>Harmonica tab</span>

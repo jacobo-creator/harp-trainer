@@ -16,6 +16,7 @@ let currentTune = null; // last rendered abcjs tune, for playback
 let synth = null;
 let synthCtx = null;
 let picker = null; // import-picker state
+let diffFilter = "all"; // songs-list difficulty filter
 let previewSynth = null;
 let previewCtx = null;
 let previewDiv = null;
@@ -34,9 +35,11 @@ export function initSongs() {
   el.notation = document.getElementById("song-notation");
   el.tabToggle = document.getElementById("tab-overlay-toggle");
   el.notes = document.getElementById("song-notes");
+  el.difficulty = document.getElementById("song-difficulty");
   el.photos = document.getElementById("song-photos");
   el.photoInput = document.getElementById("photo-input");
   el.play = document.getElementById("abc-play");
+  el.diffFilter = document.getElementById("diff-filter");
 
   el.key.innerHTML = HARP_KEYS.map(
     (k) => `<option value="${k.key}">${k.key}</option>`
@@ -52,6 +55,16 @@ export function initSongs() {
 
   el.newBtn.addEventListener("click", () => openEditor(null));
   el.search.addEventListener("input", renderList);
+
+  el.diffFilter.addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-diff]");
+    if (!chip) return;
+    diffFilter = chip.dataset.diff;
+    el.diffFilter.querySelectorAll(".diff-chip").forEach((c) =>
+      c.classList.toggle("active", c === chip)
+    );
+    renderList();
+  });
 
   el.importBtn.addEventListener("click", () => el.importInput.click());
   el.importInput.addEventListener("change", onImportFile);
@@ -159,18 +172,23 @@ export async function refreshSongs() {
 async function renderList() {
   const q = (el.search.value || "").toLowerCase();
   const songs = await getAllSongs();
-  const filtered = songs.filter(
-    (s) =>
+  const filtered = songs.filter((s) => {
+    if (diffFilter !== "all" && (s.difficulty || "") !== diffFilter) return false;
+    return (
       !q ||
       (s.title || "").toLowerCase().includes(q) ||
       (s.tab || "").toLowerCase().includes(q) ||
       (s.notes || "").toLowerCase().includes(q)
-  );
+    );
+  });
 
   if (!filtered.length) {
-    el.list.innerHTML = `<p class="empty">${
-      songs.length ? "No songs match your search." : "No saved songs yet. Tap + New song to add tabs, notation, or a photo of sheet music."
-    }</p>`;
+    const msg = !songs.length
+      ? "No saved songs yet. Tap + New song to add tabs, notation, or a photo of sheet music."
+      : diffFilter !== "all" && !q
+      ? `No ${diffFilter} songs.`
+      : "No songs match your search.";
+    el.list.innerHTML = `<p class="empty">${msg}</p>`;
     return;
   }
 
@@ -182,10 +200,13 @@ async function renderList() {
         s.abc ? "notation" : null,
         s.photos && s.photos.length ? `${s.photos.length}📷` : null,
       ].filter(Boolean);
+      const diff = s.difficulty
+        ? `<span class="diff diff-${s.difficulty}">${s.difficulty}</span>`
+        : "";
       return `<button class="song-card" data-id="${s.id}">
         <div class="song-card-main">
           <span class="song-card-title">${escapeHtml(s.title || "Untitled")}</span>
-          <span class="song-card-sub">${s.key} harp · ${date}</span>
+          <span class="song-card-sub">${diff}${s.key} harp · ${date}</span>
         </div>
         <div class="song-card-badges">${badges
           .map((b) => `<span class="badge">${b}</span>`)
@@ -412,6 +433,7 @@ function fillEditor() {
   el.tab.value = current.tab || "";
   el.abc.value = current.abc || "";
   el.notes.value = current.notes || "";
+  el.difficulty.value = current.difficulty || "";
   current.transpose = current.transpose || 0;
   updateTransposeReadout();
   document.getElementById("editor-delete").style.display = current.id
@@ -439,6 +461,7 @@ async function save() {
   current.tab = el.tab.value;
   current.abc = el.abc.value;
   current.notes = el.notes.value;
+  current.difficulty = el.difficulty.value;
   const saved = await saveSong(current);
   current = saved;
   document.getElementById("editor-delete").style.display = "";
