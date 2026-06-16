@@ -117,6 +117,16 @@ export function initSongs() {
   el.key.addEventListener("change", renderNotation); // tab depends on harp key
   el.tabToggle.addEventListener("change", renderNotation);
   el.play.addEventListener("click", playAbc);
+
+  el.transposeReadout = document.getElementById("transpose-readout");
+  document.querySelectorAll("#song-editor-view [data-tr]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (!current) return;
+      current.transpose = Math.max(-24, Math.min(24, (current.transpose || 0) + +b.dataset.tr));
+      updateTransposeReadout();
+      renderNotation();
+    })
+  );
   document
     .getElementById("abc-template")
     .addEventListener("click", insertAbcTemplate);
@@ -402,6 +412,8 @@ function fillEditor() {
   el.tab.value = current.tab || "";
   el.abc.value = current.abc || "";
   el.notes.value = current.notes || "";
+  current.transpose = current.transpose || 0;
+  updateTransposeReadout();
   document.getElementById("editor-delete").style.display = current.id
     ? ""
     : "none";
@@ -457,11 +469,17 @@ function renderNotation() {
     return;
   }
   const harpKey = el.tabToggle.checked ? el.key.value : null;
-  currentTune = renderTabbedNotation(el.notation, abc, harpKey);
+  const transpose = current ? current.transpose || 0 : 0;
+  currentTune = renderTabbedNotation(el.notation, abc, harpKey, transpose);
   if (!currentTune) {
     el.notation.innerHTML = "<p class='muted'>Couldn't render that notation.</p>";
   }
   el.play.disabled = !currentTune;
+}
+
+function updateTransposeReadout() {
+  const t = current ? current.transpose || 0 : 0;
+  el.transposeReadout.textContent = (t > 0 ? "+" : "") + t + (t ? " st" : "");
 }
 
 async function playAbc() {

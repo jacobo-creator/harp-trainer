@@ -11,8 +11,14 @@ weekly re-signing like sideloaded `.ipa` files need.
   for practicing **bends** and **fast note changes**. Pitch detection uses the
   **YIN** algorithm (robust across the harp's range), with a **Mic
   sensitivity** control (High/Medium/Low) that ignores breath/wind noise.
-- **Starter songs** are seeded on first launch (scale, Twinkle, Mary Had a
-  Little Lamb, Ode to Joy) so there's something to play right away.
+- **Metronome** — steady Web-Audio click (accented downbeat), tempo slider +
+  tap-tempo, selectable beats per bar, with a visual beat indicator.
+- **Transpose** — in the song editor, shift any song up/down by semitones or
+  octaves (`−8va`…`+8va`). Works for everything: typed, imported, or online
+  tunes — handy for fitting a melody to your harp's range.
+- **Starter songs** are seeded on first launch (C scale, Twinkle, Mary Had a
+  Little Lamb, Ode to Joy, Jingle Bells, Frère Jacques, London Bridge, Old
+  MacDonald) so there's something to play right away.
 - **Harmonica technique hint** — pick your harp's key and the tuner tells you
   which **hole + breath + bend** you're playing (e.g. `-3''` = draw 3,
   whole-step bend). Works for all 12 keys (G through F#).

@@ -71,16 +71,33 @@ export async function deleteSong(id) {
   return asPromise(store.delete(id));
 }
 
-// Add the starter songs once, ever (a localStorage flag means deleting them
-// doesn't bring them back on the next launch).
+// Seed each starter song once, ever. We remember which ids we've seeded so
+// that (a) deleting a starter song doesn't bring it back, and (b) starter
+// songs added in a later update get seeded without duplicating the old ones.
 export async function seedStarterSongs() {
-  if (localStorage.getItem("harp-seeded")) return;
-  localStorage.setItem("harp-seeded", "1");
+  let seeded;
+  try {
+    seeded = JSON.parse(localStorage.getItem("harp-seeded-ids") || "[]");
+  } catch {
+    seeded = [];
+  }
+  const done = new Set(seeded);
+
+  // Migrate the original single-flag seeding (v8) so its songs aren't re-added.
+  if (done.size === 0 && localStorage.getItem("harp-seeded")) {
+    ["starter-scale", "starter-twinkle", "starter-mary", "starter-ode"].forEach((id) =>
+      done.add(id)
+    );
+  }
+
   for (const song of STARTER_SONGS) {
+    if (done.has(song.id)) continue;
     try {
       await saveSong({ ...song });
+      done.add(song.id);
     } catch (e) {
       console.warn("Could not seed song", song.id, e);
     }
   }
+  localStorage.setItem("harp-seeded-ids", JSON.stringify([...done]));
 }

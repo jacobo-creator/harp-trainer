@@ -2,10 +2,12 @@
 
 import { initTuner, stopTuner } from "./tuner.js";
 import { initSongs, refreshSongs } from "./songs.js";
+import { initMetronome, stopMetronome } from "./metronome.js";
 import { bindHarpKeySelectors } from "./settings.js";
 
 const views = {
   tuner: document.getElementById("view-tuner"),
+  metronome: document.getElementById("view-metronome"),
   songs: document.getElementById("view-songs"),
 };
 const tabs = document.querySelectorAll(".tabbar button");
@@ -16,6 +18,7 @@ function show(name) {
   );
   tabs.forEach((t) => t.classList.toggle("active", t.dataset.view === name));
   if (name !== "tuner") stopTuner();
+  if (name !== "metronome") stopMetronome();
   if (name === "songs") refreshSongs();
   location.hash = name;
 }
@@ -26,6 +29,7 @@ tabs.forEach((t) =>
 
 bindHarpKeySelectors();
 initTuner();
+initMetronome();
 initSongs();
 
 show(location.hash.replace("#", "") in views ? location.hash.replace("#", "") : "tuner");

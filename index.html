@@ -147,6 +147,16 @@
             <input type="checkbox" id="tab-overlay-toggle" checked />
             Show harmonica tab under each note (uses the key above)
           </label>
+          <div class="transpose-field">
+            <span>Transpose</span>
+            <div class="transpose-row">
+              <button type="button" data-tr="-12" class="ghost">−8va</button>
+              <button type="button" data-tr="-1" class="ghost">−1</button>
+              <span id="transpose-readout" class="shift-readout">0</span>
+              <button type="button" data-tr="1" class="ghost">+1</button>
+              <button type="button" data-tr="12" class="ghost">+8va</button>
+            </div>
+          </div>
           <div class="notation-wrap">
             <div id="song-notation" class="notation"></div>
             <button id="abc-play" class="ghost" disabled>▶ Play</button>
@@ -168,11 +178,48 @@
         </label>
       </div>
     </section>
+
+    <!-- ================= METRONOME ================= -->
+    <section id="view-metronome" class="view hidden">
+      <div class="metro-card">
+        <div class="metro-bpm-display">
+          <span id="metro-bpm">100</span>
+          <small>BPM</small>
+        </div>
+
+        <div id="metro-dots" class="metro-dots"></div>
+
+        <input id="metro-slider" class="metro-slider" type="range"
+               min="40" max="240" value="100" step="1" />
+
+        <div class="metro-row">
+          <button id="metro-dec" class="ghost">−</button>
+          <button id="metro-tap" class="ghost">Tap</button>
+          <button id="metro-inc" class="ghost">+</button>
+        </div>
+
+        <label class="metro-beats">
+          Beats per bar
+          <select id="metro-beats">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="6">6</option>
+          </select>
+        </label>
+
+        <button id="metro-toggle" class="primary metro-go">Start</button>
+      </div>
+    </section>
   </main>
 
   <nav class="tabbar">
     <button data-view="tuner" class="active">
       <span class="tab-ico">🎵</span><span>Tuner</span>
+    </button>
+    <button data-view="metronome">
+      <span class="tab-ico">⏱️</span><span>Metro</span>
     </button>
     <button data-view="songs">
       <span class="tab-ico">📖</span><span>Songs</span>

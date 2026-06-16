@@ -83,7 +83,7 @@ function tabTokens(tune, harpKey) {
 
 // Render `abc` into `container` and, if harpKey is given, overlay the tab.
 // Returns the abcjs tune object (or null on failure).
-export function renderTabbedNotation(container, abc, harpKey) {
+export function renderTabbedNotation(container, abc, harpKey, transpose = 0) {
   if (typeof ABCJS === "undefined") return null;
   const width = Math.max(320, Math.min(900, (container.clientWidth || 360) - 8));
   let tune;
@@ -94,6 +94,7 @@ export function renderTabbedNotation(container, abc, harpKey) {
       paddingleft: 8,
       paddingright: 8,
       paddingtop: 4,
+      visualTranspose: transpose || 0,
     })[0];
   } catch (e) {
     console.error(e);
