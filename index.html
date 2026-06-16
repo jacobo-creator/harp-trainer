@@ -88,8 +88,9 @@
         <div class="import-row">
           <button id="song-import" class="ghost">📥 Import file</button>
           <button id="song-find" class="ghost">🔎 Find tune online</button>
-          <input id="import-input" type="file"
-                 accept=".mid,.midi,.abc,.musicxml,.xml,.mxl,audio/*" hidden />
+          <!-- No `accept` filter: iOS greys out file types it doesn't know
+               (.abc/.musicxml/.mxl), so we allow any file and validate in JS. -->
+          <input id="import-input" type="file" hidden />
         </div>
 
         <div id="online-panel" class="online-panel hidden">
