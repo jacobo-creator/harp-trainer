@@ -299,9 +299,12 @@ async function audioToAbc(arrayBuffer) {
   const sr = buf.sampleRate;
   const win = 2048;
   const hop = 1024;
+  // Cap analysis (pitch tracking is heavy) so a long file doesn't freeze the
+  // phone — we only look at the first ~45 seconds.
+  const maxLen = Math.min(data.length, Math.floor(sr * 45));
 
   const seq = [];
-  for (let i = 0; i + win <= data.length; i += hop) {
+  for (let i = 0; i + win <= maxLen; i += hop) {
     const f = detectPitch(data.subarray(i, i + win), sr);
     seq.push(f > 0 ? Math.round(69 + 12 * Math.log2(f / 440)) : null);
   }
@@ -341,14 +344,18 @@ export async function parseImport(file) {
     return parseMusicXml(await file.text(), base);
   if (lower.endsWith(".mxl"))
     return parseMusicXml(mxlToXml(new Uint8Array(await file.arrayBuffer())), base);
-  if (/\.(mp3|wav|m4a|aac|ogg|flac|webm)$/i.test(lower) || file.type.startsWith("audio/")) {
+  if (
+    /\.(mp3|wav|m4a|mp4|aac|ogg|flac|webm)$/i.test(lower) ||
+    file.type.startsWith("audio/") ||
+    file.type === "video/mp4"
+  ) {
     return {
       kind: "abc",
       abc: await audioToAbc(await file.arrayBuffer()),
       title: base,
       warning:
-        "Audio import is experimental: it follows only a single, clear melody line and the timing is approximate. Expect to clean up the result.",
+        "Audio import is experimental and only works for a single, clear melody line — one instrument, or you playing one note at a time. A full song with vocals/backing won't transcribe (use a MIDI for those). Only the first ~45 seconds are analysed; expect to tidy up the result.",
     };
   }
-  throw new Error("Unsupported file type. Use .mid, .musicxml/.mxl, .abc, or audio.");
+  throw new Error("Unsupported file type. Use .mid, .musicxml/.mxl, .abc, audio, or .mp4.");
 }
