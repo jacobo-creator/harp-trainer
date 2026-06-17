@@ -332,8 +332,102 @@ async function audioToAbc(arrayBuffer) {
   return assembleAbc("Imported audio (rough)", 4, 4, events, 16);
 }
 
+// ---------- AI melody extraction (lazy-loaded, online) ----------
+// Spotify's basic-pitch (audio -> notes) runs in the browser via TensorFlow.js.
+// We load it from a CDN only when needed so the core app stays small/offline.
+const BP_MODULE = "https://cdn.jsdelivr.net/npm/@spotify/basic-pitch@1.0.1/+esm";
+const BP_MODEL = "https://cdn.jsdelivr.net/npm/@spotify/basic-pitch@1.0.1/model/model.json";
+const AI_MAX_SECONDS = 30; // bound processing time
+let _bp = null;
+
+async function loadBasicPitch() {
+  if (!_bp) _bp = await import(/* @vite-ignore */ BP_MODULE);
+  return _bp;
+}
+
+// Decode + downmix to mono + resample to 22050 Hz (what the model expects),
+// capped to the first AI_MAX_SECONDS.
+async function decodeMono22050(arrayBuffer) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const tmp = new Ctx();
+  let decoded;
+  try {
+    decoded = await tmp.decodeAudioData(arrayBuffer);
+  } finally {
+    tmp.close();
+  }
+  const dur = Math.min(decoded.duration, AI_MAX_SECONDS);
+  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const off = new Off(1, Math.max(1, Math.ceil(dur * 22050)), 22050);
+  const src = off.createBufferSource();
+  src.buffer = decoded;
+  src.connect(off.destination);
+  src.start(0);
+  const rendered = await off.startRendering();
+  return rendered.getChannelData(0);
+}
+
+export async function audioToMelodyAbc(arrayBuffer, onProgress) {
+  const report = (msg, pct) => onProgress && onProgress(msg, pct);
+  report("Preparing audio…", 0);
+  const audio = await decodeMono22050(arrayBuffer);
+
+  report("Loading AI model…", 0);
+  const bp = await loadBasicPitch();
+  const basicPitch = new bp.BasicPitch(BP_MODEL);
+
+  const frames = [];
+  const onsets = [];
+  const contours = [];
+  await basicPitch.evaluateModel(
+    audio,
+    (f, o, c) => {
+      frames.push(...f);
+      onsets.push(...o);
+      contours.push(...c);
+    },
+    (p) => report("Finding the melody…", Math.round((p <= 1 ? p * 100 : p)))
+  );
+
+  const notes = bp.noteFramesToTime(
+    bp.addPitchBendsToNoteEvents(contours, bp.outputToNotesPoly(frames, onsets, 0.5, 0.3, 11))
+  );
+  if (!notes.length) throw new Error("No notes detected in this audio.");
+
+  // Reduce the (polyphonic) note events to a single melody line: the highest
+  // pitch sounding in each sixteenth-note cell, re-articulated at onsets.
+  const sixteenth = 0.125; // assume 120 BPM
+  const cells = [];
+  let maxCell = 0;
+  for (const n of notes) {
+    const s = Math.round(n.startTimeSeconds / sixteenth);
+    let e = Math.round((n.startTimeSeconds + n.durationSeconds) / sixteenth);
+    if (e <= s) e = s + 1;
+    for (let i = s; i < e; i++) {
+      if (cells[i] == null || n.pitchMidi > cells[i]) cells[i] = n.pitchMidi;
+    }
+    if (e > maxCell) maxCell = e;
+  }
+  const onCells = new Set();
+  for (const n of notes) {
+    const s = Math.round(n.startTimeSeconds / sixteenth);
+    if (cells[s] === n.pitchMidi) onCells.add(s);
+  }
+  const events = [];
+  let i = 0;
+  while (i < maxCell) {
+    const v = cells[i] == null ? null : cells[i];
+    let j = i + 1;
+    while (j < maxCell && (cells[j] == null ? null : cells[j]) === v && !onCells.has(j)) j++;
+    events.push({ midi: v, len: j - i });
+    i = j;
+  }
+  while (events.length && events[0].midi == null) events.shift(); // trim leading rest
+  return assembleAbc("Extracted melody", 4, 4, events, 16);
+}
+
 // ---------- entry point ----------
-export async function parseImport(file) {
+export async function parseImport(file, onProgress) {
   const lower = file.name.toLowerCase();
   const base = file.name.replace(/\.[^.]+$/, "");
 
@@ -349,13 +443,26 @@ export async function parseImport(file) {
     file.type.startsWith("audio/") ||
     file.type === "video/mp4"
   ) {
-    return {
-      kind: "abc",
-      abc: await audioToAbc(await file.arrayBuffer()),
-      title: base,
-      warning:
-        "Audio import is experimental and only works for a single, clear melody line — one instrument, or you playing one note at a time. A full song with vocals/backing won't transcribe (use a MIDI for those). Only the first ~45 seconds are analysed; expect to tidy up the result.",
-    };
+    const ab = await file.arrayBuffer();
+    try {
+      const abc = await audioToMelodyAbc(ab.slice(0), onProgress);
+      return {
+        kind: "abc",
+        abc,
+        title: base,
+        warning:
+          "AI melody extraction is best-effort: it pulls the most prominent line from the first ~30s and the timing is approximate. It does better on a clear lead/vocal than a dense mix — review and tidy the result.",
+      };
+    } catch (err) {
+      console.warn("AI extraction failed, falling back to basic pitch tracking", err);
+      return {
+        kind: "abc",
+        abc: await audioToAbc(ab.slice(0)),
+        title: base,
+        warning:
+          "Couldn't run AI extraction (needs an internet connection the first time). Fell back to basic pitch tracking, which only follows a single clear melody line — expect to tidy the result.",
+      };
+    }
   }
   throw new Error("Unsupported file type. Use .mid, .musicxml/.mxl, .abc, audio, or .mp4.");
 }

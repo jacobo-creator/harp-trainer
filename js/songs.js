@@ -50,6 +50,9 @@ export function initSongs() {
 
   el.importBtn = document.getElementById("song-import");
   el.importInput = document.getElementById("import-input");
+  el.aiProgress = document.getElementById("ai-progress");
+  el.aiMsg = document.getElementById("ai-progress-msg");
+  el.aiBar = document.getElementById("ai-bar-fill");
   el.findBtn = document.getElementById("song-find");
   el.onlinePanel = document.getElementById("online-panel");
   el.onlineQuery = document.getElementById("online-query");
@@ -278,9 +281,15 @@ async function onImportFile(e) {
   const file = e.target.files && e.target.files[0];
   el.importInput.value = "";
   if (!file) return;
-  flash("Reading " + file.name + "…");
+  const isAudio =
+    /\.(mp3|wav|m4a|mp4|aac|ogg|flac|webm)$/i.test(file.name) ||
+    file.type.startsWith("audio/") ||
+    file.type === "video/mp4";
+  if (isAudio) showAiProgress("Preparing audio…", 0);
+  else flash("Reading " + file.name + "…");
   try {
-    const parsed = await parseImport(file);
+    const parsed = await parseImport(file, (msg, pct) => updateAiProgress(msg, pct));
+    hideAiProgress();
     if (parsed.kind === "abc") {
       openEditorWithContent({ abc: parsed.abc, title: parsed.title });
       if (parsed.warning) setTimeout(() => alert(parsed.warning), 50);
@@ -289,9 +298,23 @@ async function onImportFile(e) {
       openImportPicker(parsed);
     }
   } catch (err) {
+    hideAiProgress();
     console.error(err);
     alert("Couldn't import this file:\n" + (err.message || err));
   }
+}
+
+function showAiProgress(msg, pct) {
+  el.aiMsg.textContent = msg;
+  el.aiBar.style.width = (pct || 0) + "%";
+  el.aiProgress.classList.remove("hidden");
+}
+function updateAiProgress(msg, pct) {
+  if (msg) el.aiMsg.textContent = msg;
+  if (typeof pct === "number") el.aiBar.style.width = Math.max(0, Math.min(100, pct)) + "%";
+}
+function hideAiProgress() {
+  el.aiProgress.classList.add("hidden");
 }
 
 // ---- import picker: choose which track/voice becomes the tab line ----
