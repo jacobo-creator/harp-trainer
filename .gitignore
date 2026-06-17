@@ -12,3 +12,12 @@ desktop.ini
 
 # Node (not used today, but just in case)
 node_modules/
+
+# Local audio test files — don't publish copyrighted audio to the repo
+*.mp3
+*.m4a
+*.mp4
+*.wav
+*.aac
+*.ogg
+*.flac

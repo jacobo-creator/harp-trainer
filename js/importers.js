@@ -10,6 +10,39 @@
 
 import { detectPitch } from "./pitch.js";
 import { nameFromMidi } from "./notes.js";
+import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
+
+// Shift a melody (events with .midi) by whole octaves so its median note sits
+// in the harp's comfortable register (~G4–C6). Extracted vocals are often well
+// below harmonica range, which is why nothing was playable.
+function fitOctave(events) {
+  const ms = events.filter((e) => e.midi != null).map((e) => e.midi).sort((a, b) => a - b);
+  if (!ms.length) return;
+  const median = ms[Math.floor(ms.length / 2)];
+  let shift = 0;
+  while (median + shift < 67) shift += 12;
+  while (median + shift > 84) shift -= 12;
+  if (shift) events.forEach((e) => { if (e.midi != null) e.midi += shift; });
+}
+
+// Pick the harp key on which the most notes are playable (exact preferred over
+// a near substitute), so an imported melody opens already in a sensible key.
+function bestHarpKey(events) {
+  const ms = events.filter((e) => e.midi != null).map((e) => e.midi);
+  if (!ms.length) return "C";
+  let best = "C";
+  let bestScore = -1;
+  for (const k of HARP_KEYS) {
+    const off = offsetForKey(k.key);
+    let score = 0;
+    for (const m of ms) {
+      if (techniquesForMidi(m, off).length) score += 2;
+      else if (techniquesForMidi(m - 1, off).length || techniquesForMidi(m + 1, off).length) score += 1;
+    }
+    if (score > bestScore) { bestScore = score; best = k.key; }
+  }
+  return best;
+}
 
 const SHARP = ["C", "^C", "D", "^D", "E", "F", "^F", "G", "^G", "A", "^A", "B"];
 const STEP_SEMITONE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -423,7 +456,10 @@ export async function audioToMelodyAbc(arrayBuffer, onProgress) {
     i = j;
   }
   while (events.length && events[0].midi == null) events.shift(); // trim leading rest
-  return assembleAbc("Extracted melody", 4, 4, events, 16);
+
+  fitOctave(events); // bring the melody up into the harmonica's range
+  const harpKey = bestHarpKey(events); // and pick a harp it actually plays on
+  return { abc: assembleAbc("Extracted melody", 4, 4, events, 16), harpKey };
 }
 
 // ---------- entry point ----------
@@ -445,13 +481,16 @@ export async function parseImport(file, onProgress) {
   ) {
     const ab = await file.arrayBuffer();
     try {
-      const abc = await audioToMelodyAbc(ab.slice(0), onProgress);
+      const { abc, harpKey } = await audioToMelodyAbc(ab.slice(0), onProgress);
       return {
         kind: "abc",
         abc,
         title: base,
+        key: harpKey,
         warning:
-          "AI melody extraction is best-effort: it pulls the most prominent line from the first ~30s and the timing is approximate. It does better on a clear lead/vocal than a dense mix — review and tidy the result.",
+          "AI melody extraction is best-effort. The melody was shifted into the harmonica's range and set to a " +
+          harpKey +
+          " harp (the best fit) — change the Harmonica key or use Transpose if you have a different harp. It does better on a clear lead/vocal than a dense mix; review and tidy the result.",
       };
     } catch (err) {
       console.warn("AI extraction failed, falling back to basic pitch tracking", err);

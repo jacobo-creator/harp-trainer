@@ -291,7 +291,7 @@ async function onImportFile(e) {
     const parsed = await parseImport(file, (msg, pct) => updateAiProgress(msg, pct));
     hideAiProgress();
     if (parsed.kind === "abc") {
-      openEditorWithContent({ abc: parsed.abc, title: parsed.title });
+      openEditorWithContent({ abc: parsed.abc, title: parsed.title, key: parsed.key });
       if (parsed.warning) setTimeout(() => alert(parsed.warning), 50);
       else flash("Imported — review and Save");
     } else {
