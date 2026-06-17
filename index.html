@@ -149,11 +149,17 @@
           </label>
         </div>
 
-        <label class="field">
-          <span>Harmonica tab</span>
+        <div class="field">
+          <span class="field-label-row">
+            <span>Harmonica tab</span>
+            <label class="tab-custom-label">
+              <input type="checkbox" id="tab-custom" />
+              Custom (edit manually)
+            </label>
+          </span>
           <textarea id="song-tab" rows="4" placeholder="e.g.  -4 -4 -5 6  -5 -4 +4"></textarea>
-          <small class="hint">+ blow · − draw · ' bend (e.g. -3'' = whole-step draw bend)</small>
-        </label>
+          <small class="hint" id="tab-hint">Auto-filled from the notation below. Tick “Custom” to edit by hand.</small>
+        </div>
 
         <div class="field">
           <span class="field-label-row">

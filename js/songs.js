@@ -5,7 +5,7 @@
 import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./store.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey } from "./settings.js";
-import { renderTabbedNotation } from "./tablature.js";
+import { renderTabbedNotation, tabStringFromTune } from "./tablature.js";
 import { parseImport, transcribeTrack } from "./importers.js";
 import { searchTunes, fetchTuneAbc } from "./tunesearch.js";
 
@@ -36,6 +36,8 @@ export function initSongs() {
   el.tabToggle = document.getElementById("tab-overlay-toggle");
   el.notes = document.getElementById("song-notes");
   el.difficulty = document.getElementById("song-difficulty");
+  el.tabCustom = document.getElementById("tab-custom");
+  el.tabHint = document.getElementById("tab-hint");
   el.photos = document.getElementById("song-photos");
   el.photoInput = document.getElementById("photo-input");
   el.play = document.getElementById("abc-play");
@@ -129,6 +131,12 @@ export function initSongs() {
   el.abc.addEventListener("input", scheduleNotation);
   el.key.addEventListener("change", renderNotation); // tab depends on harp key
   el.tabToggle.addEventListener("change", renderNotation);
+  el.tabCustom.addEventListener("change", () => {
+    if (!current) return;
+    current.customTab = el.tabCustom.checked;
+    applyTabMode();
+    if (!current.customTab) renderNotation(); // re-derive from the notation
+  });
   el.play.addEventListener("click", playAbc);
 
   el.transposeReadout = document.getElementById("transpose-readout");
@@ -435,7 +443,9 @@ function fillEditor() {
   el.notes.value = current.notes || "";
   el.difficulty.value = current.difficulty || "";
   current.transpose = current.transpose || 0;
+  current.customTab = !!current.customTab;
   updateTransposeReadout();
+  applyTabMode();
   document.getElementById("editor-delete").style.display = current.id
     ? ""
     : "none";
@@ -462,6 +472,7 @@ async function save() {
   current.abc = el.abc.value;
   current.notes = el.notes.value;
   current.difficulty = el.difficulty.value;
+  current.customTab = el.tabCustom.checked;
   const saved = await saveSong(current);
   current = saved;
   document.getElementById("editor-delete").style.display = "";
@@ -491,13 +502,32 @@ function renderNotation() {
     currentTune = null;
     return;
   }
-  const harpKey = el.tabToggle.checked ? el.key.value : null;
+  const overlayKey = el.tabToggle.checked ? el.key.value : null;
   const transpose = current ? current.transpose || 0 : 0;
-  currentTune = renderTabbedNotation(el.notation, abc, harpKey, transpose);
+  currentTune = renderTabbedNotation(el.notation, abc, overlayKey, transpose);
   if (!currentTune) {
     el.notation.innerHTML = "<p class='muted'>Couldn't render that notation.</p>";
   }
   el.play.disabled = !currentTune;
+
+  // Auto-fill the tab field from the notation unless the user marked it custom.
+  if (currentTune && current && !current.customTab) {
+    el.tab.value = tabStringFromTune(currentTune, el.key.value);
+  }
+}
+
+// Reflect custom/auto mode on the tab field (read-only + hint) without
+// overwriting its contents.
+function applyTabMode() {
+  const custom = current ? !!current.customTab : false;
+  const hasAbc = !!el.abc.value.trim();
+  el.tabCustom.checked = custom;
+  el.tab.readOnly = !custom && hasAbc;
+  el.tab.classList.toggle("auto", !custom && hasAbc);
+  el.tabHint.textContent =
+    custom || !hasAbc
+      ? "Edit the tab freely — it won't be overwritten."
+      : "Auto-filled from the notation below. Tick “Custom” to edit by hand.";
 }
 
 function updateTransposeReadout() {

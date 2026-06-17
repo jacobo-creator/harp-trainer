@@ -33,6 +33,10 @@ weekly re-signing like sideloaded `.ipa` files need.
   - **Tab merged onto the sheet music** — the harmonica tab (hole/breath/bend)
     for the song's key is printed under each note on the staff, so you learn the
     tab *with* the rhythm and timing. Toggle on/off, and it follows the key.
+    Long songs wrap onto multiple lines (readable, not crammed onto one).
+  - **Auto-filled tab** — the *Harmonica tab* field is populated automatically
+    from the notation (for the chosen key/transpose); tick **Custom** to edit it
+    by hand and stop the auto-fill.
   - **Photos** of printed sheet music
   - free-form practice notes
   - All stored **on-device** (IndexedDB) and searchable.

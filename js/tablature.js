@@ -81,20 +81,59 @@ function tabTokens(tune, harpKey) {
   return tokens;
 }
 
+// Build a readable harmonica-tab string from a parsed tune (bars included),
+// e.g. "+4 -4 +5 | +6 -6 +7". Unplayable notes show as their note name.
+export function tabStringFromTune(tune, harpKey) {
+  if (!tune || !tune.lines) return "";
+  const offset = offsetForKey(harpKey);
+  const parts = [];
+  for (const line of tune.lines.filter((l) => l.staff)) {
+    for (const staff of line.staff) {
+      const keyAcc = keyAccMap(staff.key);
+      const voice = staff.voices && staff.voices[0] ? staff.voices[0] : [];
+      let measureAcc = new Map();
+      for (const el of voice) {
+        if (el.el_type === "bar") { measureAcc = new Map(); parts.push("|"); continue; }
+        if (el.el_type !== "note" || el.rest || !el.pitches || !el.pitches.length) continue;
+        let top = el.pitches[0];
+        for (const pp of el.pitches) if (pp.pitch > top.pitch) top = pp;
+        const midi = midiFromPitch(top, keyAcc, measureAcc);
+        const techs = techniquesForMidi(midi, offset);
+        parts.push(techs.length ? techs[0].tab : `(${nameFromMidi(midi).label})`);
+      }
+      break; // melody voice only
+    }
+  }
+  return parts
+    .join(" ")
+    .replace(/\|(\s*\|)+/g, "|")        // collapse empty bars
+    .replace(/^\s*\|\s*/, "")           // drop a leading barline
+    .replace(/\s*\|\s*$/, "")           // and a trailing one
+    .replace(/\s+/g, " ")
+    .replace(/\|/g, " |")
+    .trim();
+}
+
 // Render `abc` into `container` and, if harpKey is given, overlay the tab.
 // Returns the abcjs tune object (or null on failure).
 export function renderTabbedNotation(container, abc, harpKey, transpose = 0) {
   if (typeof ABCJS === "undefined") return null;
-  const width = Math.max(320, Math.min(900, (container.clientWidth || 360) - 8));
+  // Render a bit narrower than the container so the SVG scales *up* to fill it
+  // (bigger notes), and wrap long songs onto multiple lines instead of cramming
+  // everything onto one tiny line.
+  const cw = container.clientWidth || 360;
+  const width = Math.max(240, Math.round(cw * 0.82));
   let tune;
   try {
     tune = ABCJS.renderAbc(container, abc, {
       add_classes: true,
       staffwidth: width,
-      paddingleft: 8,
-      paddingright: 8,
+      paddingleft: 6,
+      paddingright: 6,
       paddingtop: 4,
+      staffsep: 90,
       visualTranspose: transpose || 0,
+      wrap: { minSpacing: 1.8, maxSpacing: 2.7, preferredMeasuresPerLine: 4 },
     })[0];
   } catch (e) {
     console.error(e);
@@ -131,7 +170,7 @@ function overlay(svg, tune, harpKey) {
     const m = (g.getAttribute("class") || "").match(/abcjs-l(\d+)/);
     if (!m) return;
     const b = g.getBBox();
-    baseline[+m[1]] = b.y + b.height + 9;
+    baseline[+m[1]] = b.y + b.height + 13;
   });
 
   const notes = svg.querySelectorAll(".abcjs-note.abcjs-v0:not(.abcjs-grace)");
@@ -146,13 +185,13 @@ function overlay(svg, tune, harpKey) {
     const cx = b.x + b.width / 2;
     const lm = (el.getAttribute("class") || "").match(/abcjs-l(\d+)/);
     const ln = lm ? +lm[1] : 0;
-    const y = baseline[ln] != null ? baseline[ln] : b.y + b.height + 9;
+    const y = baseline[ln] != null ? baseline[ln] : b.y + b.height + 13;
 
     const t = document.createElementNS(SVG_NS, "text");
     t.setAttribute("x", cx.toFixed(2));
     t.setAttribute("y", y.toFixed(2));
     t.setAttribute("text-anchor", "middle");
-    t.setAttribute("font-size", "8.5");
+    t.setAttribute("font-size", "12");
     t.setAttribute("font-family", "ui-monospace, Menlo, monospace");
     t.setAttribute("font-weight", "700");
     t.setAttribute("fill", tok.playable ? "#b45309" : "#94a3b8");
@@ -165,7 +204,7 @@ function overlay(svg, tune, harpKey) {
 
   // Grow the viewBox so the tab row under the last staff line isn't clipped.
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
-  if (vb.length === 4 && maxY + 5 > vb[3]) {
-    svg.setAttribute("viewBox", `${vb[0]} ${vb[1]} ${vb[2]} ${maxY + 5}`);
+  if (vb.length === 4 && maxY + 8 > vb[3]) {
+    svg.setAttribute("viewBox", `${vb[0]} ${vb[1]} ${vb[2]} ${maxY + 8}`);
   }
 }

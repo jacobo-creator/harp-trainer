@@ -246,6 +246,12 @@ textarea, .field select {
   font-family: inherit; resize: vertical;
 }
 #song-tab { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+#song-tab.auto { background: var(--bg); border-style: dashed; opacity: .92; }
+.tab-custom-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .78rem; color: var(--muted); font-weight: 400; cursor: pointer;
+}
+.tab-custom-label input { width: 16px; height: 16px; accent-color: var(--accent); }
 .hint { color: var(--muted); font-size: .75rem; }
 .link-btn {
   background: none; border: none; color: var(--accent); font-size: .85rem;
