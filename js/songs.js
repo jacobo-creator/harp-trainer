@@ -137,6 +137,10 @@ export function initSongs() {
     applyTabMode();
     if (!current.customTab) renderNotation(); // re-derive from the notation
   });
+  el.tab.addEventListener("input", autosizeTab);
+  window.addEventListener("resize", () => {
+    if (!el.editorView.classList.contains("hidden")) autosizeTab();
+  });
   el.play.addEventListener("click", playAbc);
 
   el.transposeReadout = document.getElementById("transpose-readout");
@@ -454,6 +458,7 @@ function fillEditor() {
   el.listView.classList.add("hidden");
   el.editorView.classList.remove("hidden");
   el.editorView.scrollTop = 0;
+  autosizeTab(); // now that the field is visible, size it to its content
 }
 
 function closeEditor() {
@@ -514,6 +519,15 @@ function renderNotation() {
   if (currentTune && current && !current.customTab) {
     el.tab.value = tabStringFromTune(currentTune, el.key.value);
   }
+  autosizeTab();
+}
+
+// Grow the tab textarea to fit its content so the whole tab is visible at once
+// (no inner scrolling) — important on a phone.
+function autosizeTab() {
+  if (!el.tab) return;
+  el.tab.style.height = "auto";
+  el.tab.style.height = el.tab.scrollHeight + 4 + "px";
 }
 
 // Reflect custom/auto mode on the tab field (read-only + hint) without
@@ -527,7 +541,7 @@ function applyTabMode() {
   el.tabHint.textContent =
     custom || !hasAbc
       ? "Edit the tab freely — it won't be overwritten."
-      : "Auto-filled from the notation below. Tick “Custom” to edit by hand.";
+      : "Auto-filled from the notation. * (blue on the staff) = nearest playable note for a chromatic. Tick “Custom” to edit.";
 }
 
 function updateTransposeReadout() {

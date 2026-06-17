@@ -49,6 +49,22 @@ function keyAccMap(key) {
   return m;
 }
 
+// Pick a tab for a MIDI note. If the exact note isn't reachable on this harp
+// (a chromatic note / overblow), fall back to the nearest playable note so the
+// player has something to play instead of skipping. Prefers the lower neighbour
+// (a chromatic is usually a raised scale tone). `substitute` flags the swap.
+function pickTechnique(midi, offset) {
+  let t = techniquesForMidi(midi, offset);
+  if (t.length) return { tab: t[0].tab, substitute: false };
+  for (let d = 1; d <= 4; d++) {
+    for (const m of [midi - d, midi + d]) {
+      t = techniquesForMidi(m, offset);
+      if (t.length) return { tab: t[0].tab, substitute: true };
+    }
+  }
+  return { tab: null, substitute: false };
+}
+
 // Walk the parsed tune (voice 0) in document order, producing one token per
 // non-rest note: the matching tab, or the note name if it's not reachable on
 // this harp (e.g. an overblow).
@@ -68,11 +84,11 @@ function tabTokens(tune, harpKey) {
         let top = el.pitches[0];
         for (const pp of el.pitches) if (pp.pitch > top.pitch) top = pp;
         const midi = midiFromPitch(top, keyAcc, measureAcc);
-        const techs = techniquesForMidi(midi, offset);
+        const pick = pickTechnique(midi, offset);
         tokens.push({
-          tab: techs.length ? techs[0].tab : null,
+          tab: pick.tab,
+          substitute: pick.substitute,
           label: nameFromMidi(midi).label,
-          playable: techs.length > 0,
         });
       }
       break; // only annotate the first (melody) voice
@@ -98,8 +114,12 @@ export function tabStringFromTune(tune, harpKey) {
         let top = el.pitches[0];
         for (const pp of el.pitches) if (pp.pitch > top.pitch) top = pp;
         const midi = midiFromPitch(top, keyAcc, measureAcc);
-        const techs = techniquesForMidi(midi, offset);
-        parts.push(techs.length ? techs[0].tab : `(${nameFromMidi(midi).label})`);
+        const pick = pickTechnique(midi, offset);
+        parts.push(
+          pick.tab
+            ? pick.substitute ? pick.tab + "*" : pick.tab
+            : `(${nameFromMidi(midi).label})`
+        );
       }
       break; // melody voice only
     }
@@ -194,8 +214,11 @@ function overlay(svg, tune, harpKey) {
     t.setAttribute("font-size", "12");
     t.setAttribute("font-family", "ui-monospace, Menlo, monospace");
     t.setAttribute("font-weight", "700");
-    t.setAttribute("fill", tok.playable ? "#b45309" : "#94a3b8");
-    t.textContent = tok.playable ? tok.tab : tok.label;
+    t.setAttribute(
+      "fill",
+      tok.tab ? (tok.substitute ? "#2563eb" : "#b45309") : "#94a3b8"
+    );
+    t.textContent = tok.tab ? tok.tab : tok.label;
     layer.appendChild(t);
     if (y > maxY) maxY = y;
   });

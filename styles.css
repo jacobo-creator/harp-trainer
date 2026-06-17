@@ -245,7 +245,10 @@ textarea, .field select {
   color: var(--text); border-radius: 12px; padding: 12px 14px; font-size: 1rem;
   font-family: inherit; resize: vertical;
 }
-#song-tab { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+#song-tab {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  overflow: hidden; resize: none; line-height: 1.7; min-height: 3em;
+}
 #song-tab.auto { background: var(--bg); border-style: dashed; opacity: .92; }
 .tab-custom-label {
   display: flex; align-items: center; gap: 6px;
