@@ -110,12 +110,26 @@
 
         <div id="online-panel" class="online-panel hidden">
           <div class="songs-toolbar">
-            <input id="online-query" type="search" placeholder="Song / tune title…" />
+            <input id="online-query" type="search" placeholder="Search by title…" />
             <button id="online-go" class="primary">Search</button>
           </div>
-          <p class="hint">Searches <strong>thesession.org</strong> — a free, legal
-          database of folk &amp; traditional tunes. Modern/pop songs aren't
-          available here (copyright); for those, import a MIDI file instead.</p>
+          <div class="online-browse-row">
+            <button id="online-browse" class="ghost">📚 Browse popular</button>
+            <select id="online-type" aria-label="Tune type">
+              <option value="">Any type</option>
+              <option value="jig">Jigs</option>
+              <option value="reel">Reels</option>
+              <option value="waltz">Waltzes</option>
+              <option value="hornpipe">Hornpipes</option>
+              <option value="polka">Polkas</option>
+              <option value="slip jig">Slip jigs</option>
+              <option value="march">Marches</option>
+            </select>
+          </div>
+          <p class="hint">Browse or search <strong>thesession.org</strong> — a free,
+          legal catalogue of folk &amp; traditional tunes. Tap a tune to load it
+          (you can preview/play it before saving). Modern/pop songs aren't here
+          (copyright) — import a MIDI for those.</p>
           <div id="online-results" class="songs-list"></div>
         </div>
 

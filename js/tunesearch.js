@@ -42,12 +42,28 @@ function convertKey(k) {
   return root + suffix;
 }
 
-export async function searchTunes(query) {
-  const url = `${BASE}/tunes/search?q=${encodeURIComponent(query)}&format=json&perpage=20`;
-  const r = await fetch(url);
+export async function searchTunes(query, type = "") {
+  const params = `q=${encodeURIComponent(query)}${type ? "&type=" + type : ""}`;
+  const r = await fetch(`${BASE}/tunes/search?${params}&format=json&perpage=25`);
   if (!r.ok) throw new Error("Search request failed (" + r.status + ").");
   const d = await r.json();
-  return (d.tunes || []).map((t) => ({ id: t.id, name: t.name, type: t.type }));
+  return { tunes: tidy(d.tunes), page: 1, pages: 1 };
+}
+
+// Browse the catalogue: most-played tunes (optionally filtered by type),
+// paginated, so you can scroll and pick without knowing any names.
+export async function browseTunes(page = 1, type = "") {
+  const url = type
+    ? `${BASE}/tunes/search?q=&type=${type}&format=json&perpage=25&page=${page}`
+    : `${BASE}/tunes/popular?format=json&perpage=25&page=${page}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("Couldn't load tunes (" + r.status + ").");
+  const d = await r.json();
+  return { tunes: tidy(d.tunes), page: d.page || page, pages: d.pages || 1 };
+}
+
+function tidy(tunes) {
+  return (tunes || []).map((t) => ({ id: t.id, name: t.name, type: t.type }));
 }
 
 // Fetch a tune and build a complete ABC string from one of its settings.

@@ -7,7 +7,7 @@ import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey } from "./settings.js";
 import { renderTabbedNotation, tabStringFromTune } from "./tablature.js";
 import { parseImport, transcribeTrack } from "./importers.js";
-import { searchTunes, fetchTuneAbc } from "./tunesearch.js";
+import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
 
 const el = {};
 let current = null; // song being edited
@@ -17,6 +17,7 @@ let synth = null;
 let synthCtx = null;
 let picker = null; // import-picker state
 let diffFilter = "all"; // songs-list difficulty filter
+let online = { mode: null, page: 1 }; // online browse/search state
 let previewSynth = null;
 let previewCtx = null;
 let previewDiv = null;
@@ -54,6 +55,8 @@ export function initSongs() {
   el.onlineQuery = document.getElementById("online-query");
   el.onlineGo = document.getElementById("online-go");
   el.onlineResults = document.getElementById("online-results");
+  el.onlineBrowse = document.getElementById("online-browse");
+  el.onlineType = document.getElementById("online-type");
 
   el.newBtn.addEventListener("click", () => openEditor(null));
   el.search.addEventListener("input", renderList);
@@ -78,7 +81,16 @@ export function initSongs() {
   el.onlineQuery.addEventListener("keydown", (e) => {
     if (e.key === "Enter") runOnlineSearch();
   });
+  el.onlineBrowse.addEventListener("click", () => browsePopular(1));
+  el.onlineType.addEventListener("change", () => {
+    if (online.mode === "browse") browsePopular(1);
+    else if (online.mode === "search") runOnlineSearch();
+  });
   el.onlineResults.addEventListener("click", (e) => {
+    if (e.target.closest("[data-loadmore]")) {
+      browsePopular(online.page + 1);
+      return;
+    }
     const card = e.target.closest("[data-tune-id]");
     if (card) loadOnlineTune(card.dataset.tuneId, card.dataset.tuneName);
   });
@@ -398,32 +410,67 @@ function stopPreview() {
 async function runOnlineSearch() {
   const q = el.onlineQuery.value.trim();
   if (!q) return;
+  online = { mode: "search", page: 1 };
   el.onlineResults.innerHTML = "<p class='muted'>Searching…</p>";
   try {
-    const tunes = await searchTunes(q);
-    if (!tunes.length) {
+    const res = await searchTunes(q, el.onlineType.value);
+    if (!res.tunes.length) {
       el.onlineResults.innerHTML =
-        "<p class='empty'>No tunes found. This database is folk/traditional — modern songs won't appear. Import a MIDI for those.</p>";
+        "<p class='empty'>No tunes found. This catalogue is folk/traditional — modern songs won't appear. Import a MIDI for those.</p>";
       return;
     }
-    el.onlineResults.innerHTML = tunes
-      .map(
-        (t) =>
-          `<button class="song-card" data-tune-id="${t.id}" data-tune-name="${escapeHtml(
-            t.name
-          )}">
-            <div class="song-card-main">
-              <span class="song-card-title">${escapeHtml(t.name)}</span>
-              <span class="song-card-sub">${escapeHtml(t.type || "tune")}</span>
-            </div>
-            <span class="badge">import →</span>
-          </button>`
-      )
-      .join("");
+    renderOnlineResults(res, false);
   } catch (err) {
     console.error(err);
     el.onlineResults.innerHTML =
       "<p class='empty'>Search failed — check your connection.</p>";
+  }
+}
+
+async function browsePopular(page) {
+  online = { mode: "browse", page };
+  if (page === 1) el.onlineResults.innerHTML = "<p class='muted'>Loading tunes…</p>";
+  const loadMore = el.onlineResults.querySelector("[data-loadmore]");
+  if (loadMore) loadMore.textContent = "Loading…";
+  try {
+    const res = await browseTunes(page, el.onlineType.value);
+    online.page = res.page;
+    online.pages = res.pages;
+    renderOnlineResults(res, page > 1);
+  } catch (err) {
+    console.error(err);
+    if (page === 1)
+      el.onlineResults.innerHTML = "<p class='empty'>Couldn't load tunes — check your connection.</p>";
+  }
+}
+
+function renderOnlineResults(res, append) {
+  const cards = res.tunes
+    .map(
+      (t) =>
+        `<button class="song-card" data-tune-id="${t.id}" data-tune-name="${escapeHtml(
+          t.name
+        )}">
+          <div class="song-card-main">
+            <span class="song-card-title">${escapeHtml(t.name)}</span>
+            <span class="song-card-sub">${escapeHtml(t.type || "tune")}</span>
+          </div>
+          <span class="badge">open →</span>
+        </button>`
+    )
+    .join("");
+  const more =
+    online.mode === "browse" && res.page < res.pages
+      ? `<button class="ghost load-more" data-loadmore="1">Load more tunes</button>`
+      : "";
+
+  if (append) {
+    const old = el.onlineResults.querySelector("[data-loadmore]");
+    if (old) old.remove();
+    el.onlineResults.insertAdjacentHTML("beforeend", cards + more);
+  } else {
+    el.onlineResults.innerHTML = cards + more;
+    el.onlineResults.scrollTop = 0;
   }
 }
 

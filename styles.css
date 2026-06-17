@@ -194,7 +194,14 @@ button {
 }
 .online-panel .songs-toolbar { margin-bottom: 8px; }
 .online-panel .hint { margin: 0 0 10px; line-height: 1.45; }
-.online-panel .songs-list { max-height: 320px; overflow-y: auto; }
+.online-panel .songs-list { max-height: 360px; overflow-y: auto; }
+.online-browse-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.online-browse-row .ghost { flex: 1; }
+#online-type {
+  background: var(--bg-elev); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 10px; font-size: .9rem;
+}
+.load-more { width: 100%; margin-top: 4px; }
 .songs-list { display: flex; flex-direction: column; gap: 10px; }
 .song-card {
   display: flex; justify-content: space-between; align-items: center;

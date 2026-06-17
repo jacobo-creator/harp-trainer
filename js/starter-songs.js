@@ -173,7 +173,7 @@ export const STARTER_SONGS = [
       "X:1\nT:Fur Elise\nM:2/4\nL:1/8\nK:Am\n" +
       "e ^d e ^d | e B d c | A2 z2 | C E A B | E ^G B c | e ^d e ^d | e B d c | A2 z2 |\n",
     notes:
-      "The D♯ and G♯ are chromatic notes — the D♯ isn't on a standard C harp (shown as a note name); G♯ is a deep hole-3 bend. A real challenge.",
+      "The D♯ and G♯ are chromatic — the app suggests the nearest playable note (the blue tab marked *). Tip: hit +8va transpose to move it up where it's fully playable.",
   },
   {
     id: "classical-turca",
@@ -185,6 +185,81 @@ export const STARTER_SONGS = [
       "X:1\nT:Rondo alla Turca\nM:2/4\nL:1/16\nK:Am\n" +
       "BA^GA c2 z2 | dcBc e2 z2 | fe^de B2 z2 | cBAB d2 z2 |\n",
     notes:
-      "Fast turning figures with chromatic G♯/D♯. Slow it right down with the metronome first.",
+      "Fast turning figures with chromatic G♯/D♯ (the app suggests the nearest playable note for those). Slow it right down with the metronome first.",
+  },
+
+  // ---------------- nursery rhymes (for little ones) ----------------
+  {
+    id: "nursery-itsy",
+    title: "Itsy Bitsy Spider",
+    key: "C",
+    difficulty: "easy",
+    tab:
+      "-2  +4 +4 +4 -4 +5 +5  +5 -4 +4 -4 +5 +4  " +
+      "+5 +5 -5 +6 +6  +6 -5 +5 -5 +6 +5  +4 +4 +4 -4 +5 +5  +5 -4 +4 -4 +5 +4",
+    abc:
+      "X:1\nT:Itsy Bitsy Spider\nM:4/4\nL:1/4\nK:C\n" +
+      "G | c c c d e e | e d c d e c | e e f g2 g | g f e f g e | c c c d e e | e d c d e c |\n",
+    notes: "A favourite — holes 4–6 with one low draw (−2) pickup.",
+  },
+  {
+    id: "nursery-hotcross",
+    title: "Hot Cross Buns",
+    key: "C",
+    difficulty: "easy",
+    tab: "+5 -4 +4  +5 -4 +4  +4 +4 +4 +4 -4 -4 -4 -4  +5 -4 +4",
+    abc:
+      "X:1\nT:Hot Cross Buns\nM:4/4\nL:1/4\nK:C\n" +
+      "e d c2 | e d c2 | c c c c d d d d | e d c2 |\n",
+    notes: "The simplest first tune: just +5 -4 +4 (E D C).",
+  },
+  {
+    id: "nursery-row",
+    title: "Row, Row, Row Your Boat",
+    key: "C",
+    difficulty: "easy",
+    tab:
+      "+4 +4 +4 -4 +5  +5 -4 +5 -5 +6  " +
+      "+7 +7 +7 +6 +6 +6 +5 +5 +5 +4 +4 +4  +6 -5 +5 -4 +4",
+    abc:
+      "X:1\nT:Row Row Row Your Boat\nM:6/8\nL:1/8\nK:C\n" +
+      "c c c d e2 | e d e f g2 | (3c'c'c' (3ggg (3eee (3ccc | g f e d c2 |\n",
+    notes: "Great as a round — try it against the metronome.",
+  },
+  {
+    id: "nursery-threeblind",
+    title: "Three Blind Mice",
+    key: "C",
+    difficulty: "easy",
+    tab: "+5 -4 +4  +5 -4 +4  +6 -5 -5 +5  +6 -5 -5 +5",
+    abc:
+      "X:1\nT:Three Blind Mice\nM:4/4\nL:1/4\nK:C\n" +
+      "e d c2 | e d c2 | g f f e2 | g f f e2 |\n",
+    notes: "Three notes down, then a step pattern. Easy and fun.",
+  },
+
+  // ---------------- classical: more ----------------
+  {
+    id: "classical-joy",
+    title: "Joy to the World — Handel",
+    key: "C",
+    difficulty: "easy",
+    tab: "+7 -7 -6 +6  -5 +5 -4 +4  +6 +6 -6 -6  -7 -7 +7",
+    abc:
+      "X:1\nT:Joy to the World\nM:4/4\nL:1/4\nK:C\n" +
+      "c' b a g | f e d c | g g a a | b b c'2 |\n",
+    notes: "Opens with a full descending scale — a great ear-training tune.",
+  },
+  {
+    id: "classical-mountainking",
+    title: "In the Hall of the Mountain King — Grieg",
+    key: "C",
+    difficulty: "medium",
+    tab:
+      "-6 -7 +7 -8 +8 +7 +8  -8 -9 -8  -6 -7 +7 -8 +8 +7 +8  -9 +8 +7",
+    abc:
+      "X:1\nT:Hall of the Mountain King\nM:4/4\nL:1/4\nK:Am\n" +
+      "a b c' d' e' c' e' | d' f' d'2 | a b c' d' e' c' e' | f' e' c'2 |\n",
+    notes: "Grieg's creeping theme (upper octave so it's playable). Start slow and speed up — that's the whole idea!",
   },
 ];
