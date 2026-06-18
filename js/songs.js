@@ -36,6 +36,7 @@ export function initSongs() {
   el.notation = document.getElementById("song-notation");
   el.tabToggle = document.getElementById("tab-overlay-toggle");
   el.notes = document.getElementById("song-notes");
+  el.lyrics = document.getElementById("song-lyrics");
   el.difficulty = document.getElementById("song-difficulty");
   el.tabCustom = document.getElementById("tab-custom");
   el.tabHint = document.getElementById("tab-hint");
@@ -144,6 +145,7 @@ export function initSongs() {
   document.getElementById("editor-delete").addEventListener("click", removeCurrent);
 
   el.abc.addEventListener("input", scheduleNotation);
+  el.lyrics.addEventListener("input", scheduleNotation); // lyrics render under notes
   el.key.addEventListener("change", renderNotation); // tab depends on harp key
   el.tabToggle.addEventListener("change", renderNotation);
   el.tabCustom.addEventListener("change", () => {
@@ -516,6 +518,7 @@ function fillEditor() {
   el.tab.value = current.tab || "";
   el.abc.value = current.abc || "";
   el.notes.value = current.notes || "";
+  el.lyrics.value = current.lyrics || "";
   el.difficulty.value = current.difficulty || "";
   current.transpose = current.transpose || 0;
   current.customTab = !!current.customTab;
@@ -547,6 +550,7 @@ async function save() {
   current.tab = el.tab.value;
   current.abc = el.abc.value;
   current.notes = el.notes.value;
+  current.lyrics = el.lyrics.value;
   current.difficulty = el.difficulty.value;
   current.customTab = el.tabCustom.checked;
   const saved = await saveSong(current);
@@ -580,7 +584,9 @@ function renderNotation() {
   }
   const overlayKey = el.tabToggle.checked ? el.key.value : null;
   const transpose = current ? current.transpose || 0 : 0;
-  currentTune = renderTabbedNotation(el.notation, abc, overlayKey, transpose);
+  const lyrics = el.lyrics.value.trim();
+  const abcToRender = lyrics ? injectLyrics(abc, lyrics) : abc;
+  currentTune = renderTabbedNotation(el.notation, abcToRender, overlayKey, transpose);
   if (!currentTune) {
     el.notation.innerHTML = "<p class='muted'>Couldn't render that notation.</p>";
   }
@@ -591,6 +597,27 @@ function renderNotation() {
     el.tab.value = tabStringFromTune(currentTune, el.key.value);
   }
   autosizeTab();
+}
+
+// Put the lyrics under the notes: join the music body onto one source line and
+// append a `w:` line, so abcjs aligns each syllable to a note and wraps both
+// together. (The music body is everything after the K: header.)
+function injectLyrics(abc, lyrics) {
+  const lines = abc.replace(/\r/g, "").split("\n");
+  const header = [];
+  const body = [];
+  let inBody = false;
+  for (const ln of lines) {
+    if (!inBody) {
+      header.push(ln);
+      if (/^\s*K:/.test(ln)) inBody = true;
+    } else if (ln.trim() && !/^\s*w:/i.test(ln)) {
+      body.push(ln.trim());
+    }
+  }
+  if (!body.length) return abc; // no melody yet
+  const w = lyrics.replace(/\s+/g, " ").trim();
+  return `${header.join("\n")}\n${body.join(" ")}\nw: ${w}\n`;
 }
 
 // Grow the tab textarea to fit its content so the whole tab is visible at once

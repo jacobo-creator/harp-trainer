@@ -100,20 +100,22 @@ export async function seedStarterSongs() {
     }
   }
   localStorage.setItem("harp-seeded-ids", JSON.stringify([...done]));
-  await backfillDifficulty();
+  await backfillField("difficulty", "harp-diff-backfill");
+  await backfillField("lyrics", "harp-lyrics-backfill");
 }
 
-// One-time: give already-seeded starter songs their difficulty flag (added in a
-// later version) without disturbing any of their other fields or user edits.
-async function backfillDifficulty() {
-  if (localStorage.getItem("harp-diff-backfill")) return;
-  localStorage.setItem("harp-diff-backfill", "1");
+// One-time: add a field (e.g. difficulty, lyrics) that was introduced in a
+// later version onto already-seeded starter songs, without disturbing their
+// other fields or any user edits.
+async function backfillField(field, flag) {
+  if (localStorage.getItem(flag)) return;
+  localStorage.setItem(flag, "1");
   for (const def of STARTER_SONGS) {
-    if (!def.difficulty) continue;
+    if (!def[field]) continue;
     try {
       const existing = await getSong(def.id);
-      if (existing && !existing.difficulty) {
-        await saveSong({ ...existing, difficulty: def.difficulty });
+      if (existing && !existing[field]) {
+        await saveSong({ ...existing, [field]: def[field] });
       }
     } catch {
       /* ignore */

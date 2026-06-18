@@ -32,6 +32,10 @@ export const STARTER_SONGS = [
       "X:1\nT:Twinkle, Twinkle, Little Star\nM:4/4\nL:1/4\nK:C\n" +
       "c c g g | a a g2 | f f e e | d d c2 | g g f f | e e d2 |" +
       " g g f f | e e d2 | c c g g | a a g2 | f f e e | d d c2 |\n",
+    lyrics:
+      "Twin-kle twin-kle lit-tle star how I won-der what you are " +
+      "up a-bove the world so high like a dia-mond in the sky " +
+      "Twin-kle twin-kle lit-tle star how I won-der what you are",
     notes: "All blow/draw on holes 4–6, no bends. A good first song.",
   },
   {
@@ -45,6 +49,9 @@ export const STARTER_SONGS = [
     abc:
       "X:1\nT:Mary Had a Little Lamb\nM:4/4\nL:1/4\nK:C\n" +
       "e d c d | e e e2 | d d d2 | e g g2 | e d c d | e e e e | d d e d | c4 |\n",
+    lyrics:
+      "Ma-ry had a lit-tle lamb lit-tle lamb lit-tle lamb " +
+      "Ma-ry had a lit-tle lamb its fleece was white as snow",
     notes: "Just three notes to start: +4 (C), -4 (D), +5 (E).",
   },
   {
@@ -211,6 +218,7 @@ export const STARTER_SONGS = [
     abc:
       "X:1\nT:Hot Cross Buns\nM:4/4\nL:1/4\nK:C\n" +
       "e d c2 | e d c2 | c c c c d d d d | e d c2 |\n",
+    lyrics: "Hot cross buns Hot cross buns one a pen-ny two a pen-ny Hot cross buns",
     notes: "The simplest first tune: just +5 -4 +4 (E D C).",
   },
   {
@@ -235,6 +243,7 @@ export const STARTER_SONGS = [
     abc:
       "X:1\nT:Three Blind Mice\nM:4/4\nL:1/4\nK:C\n" +
       "e d c2 | e d c2 | g f f e2 | g f f e2 |\n",
+    lyrics: "Three blind mice Three blind mice see how they run see how they run",
     notes: "Three notes down, then a step pattern. Easy and fun.",
   },
 

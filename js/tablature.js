@@ -166,6 +166,7 @@ export function renderTabbedNotation(container, abc, harpKey, transpose = 0) {
   // everything onto one tiny line.
   const cw = container.clientWidth || 360;
   const width = Math.max(240, Math.round(cw * 0.82));
+  const hasLyrics = /^w:/m.test(abc); // leave room for a lyric row under the staff
   let tune;
   try {
     tune = ABCJS.renderAbc(container, abc, {
@@ -174,7 +175,7 @@ export function renderTabbedNotation(container, abc, harpKey, transpose = 0) {
       paddingleft: 6,
       paddingright: 6,
       paddingtop: 4,
-      staffsep: 90,
+      staffsep: hasLyrics ? 120 : 90,
       visualTranspose: transpose || 0,
       wrap: { minSpacing: 1.8, maxSpacing: 2.7, preferredMeasuresPerLine: 4 },
     })[0];
@@ -185,7 +186,7 @@ export function renderTabbedNotation(container, abc, harpKey, transpose = 0) {
   const svg = container.querySelector("svg");
   if (svg) {
     makeResponsive(svg);
-    if (harpKey) overlay(svg, tune, harpKey);
+    if (harpKey) overlay(svg, tune, harpKey, hasLyrics);
   }
   return tune;
 }
@@ -204,16 +205,29 @@ function makeResponsive(svg) {
   svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
 }
 
-function overlay(svg, tune, harpKey) {
+function overlay(svg, tune, harpKey, hasLyrics) {
   const tokens = tabTokens(tune, harpKey);
 
-  // Baseline (just under the 5-line staff) for each rendered line.
+  // Baseline for each rendered line: just under the staff, or below the lyric
+  // row when there are lyrics (note on top, word under it, tab below the word).
+  let gap = 13;
+  if (hasLyrics) {
+    const fs = svg.querySelector("g.abcjs-staff");
+    const fl = svg.querySelector(".abcjs-lyric");
+    if (fs && fl) {
+      const sb = fs.getBBox();
+      const lb = fl.getBBox();
+      gap = lb.y + lb.height - (sb.y + sb.height) + 8; // just below the lyric row
+    } else {
+      gap = 30;
+    }
+  }
   const baseline = {};
   svg.querySelectorAll("g.abcjs-staff").forEach((g) => {
     const m = (g.getAttribute("class") || "").match(/abcjs-l(\d+)/);
     if (!m) return;
     const b = g.getBBox();
-    baseline[+m[1]] = b.y + b.height + 13;
+    baseline[+m[1]] = b.y + b.height + gap;
   });
 
   const notes = svg.querySelectorAll(".abcjs-note.abcjs-v0:not(.abcjs-grace)");
@@ -228,7 +242,7 @@ function overlay(svg, tune, harpKey) {
     const cx = b.x + b.width / 2;
     const lm = (el.getAttribute("class") || "").match(/abcjs-l(\d+)/);
     const ln = lm ? +lm[1] : 0;
-    const y = baseline[ln] != null ? baseline[ln] : b.y + b.height + 13;
+    const y = baseline[ln] != null ? baseline[ln] : b.y + b.height + gap;
 
     const t = document.createElementNS(SVG_NS, "text");
     t.setAttribute("x", cx.toFixed(2));
