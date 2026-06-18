@@ -97,6 +97,29 @@ function tabTokens(tune, harpKey) {
   return tokens;
 }
 
+// The melody as absolute MIDI note numbers (resolves key sig + accidentals).
+// Used to work out how to transpose a song onto a given harp.
+export function melodyMidisFromTune(tune) {
+  if (!tune || !tune.lines) return [];
+  const out = [];
+  for (const line of tune.lines.filter((l) => l.staff)) {
+    for (const staff of line.staff) {
+      const keyAcc = keyAccMap(staff.key);
+      const voice = staff.voices && staff.voices[0] ? staff.voices[0] : [];
+      let measureAcc = new Map();
+      for (const el of voice) {
+        if (el.el_type === "bar") { measureAcc = new Map(); continue; }
+        if (el.el_type !== "note" || el.rest || !el.pitches || !el.pitches.length) continue;
+        let top = el.pitches[0];
+        for (const pp of el.pitches) if (pp.pitch > top.pitch) top = pp;
+        out.push(midiFromPitch(top, keyAcc, measureAcc));
+      }
+      break;
+    }
+  }
+  return out;
+}
+
 // Build a readable harmonica-tab string from a parsed tune (bars included),
 // e.g. "+4 -4 +5 | +6 -6 +7". Unplayable notes show as their note name.
 export function tabStringFromTune(tune, harpKey) {

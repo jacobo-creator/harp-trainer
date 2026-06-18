@@ -282,6 +282,7 @@ textarea, .field select {
 .tab-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 .transpose-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 2px 0; }
 .transpose-field > span { font-size: .85rem; color: var(--muted); }
+.fit-harp { width: 100%; margin-top: 8px; }
 
 /* ---------- metronome ---------- */
 .metro-card {
