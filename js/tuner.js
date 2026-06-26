@@ -3,7 +3,8 @@
 import { detectPitch, Smoother } from "./pitch.js";
 import { noteFromFrequency } from "./notes.js";
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
-import { getHarpKey } from "./settings.js";
+import { getHarpKey, getInstrument } from "./settings.js";
+import { kalimbaTab } from "./tablature.js";
 
 let audioCtx = null;
 let analyser = null;
@@ -173,7 +174,16 @@ function render(n, freq) {
     el.intune.className = "in-tune sharp";
   }
 
-  // Harmonica technique hint for the current harp key.
+  // Instrument-specific hint: kalimba number, or harmonica hole/breath/bend.
+  if (getInstrument() === "kalimba") {
+    const k = kalimbaTab(n.midi);
+    el.technique.innerHTML = k
+      ? `<span class="tech-chip"><span class="tech-tab">${k}</span>` +
+        `<span class="tech-text">kalimba key</span></span>`
+      : `<span class="tech-chip none">${n.label} ` +
+        `<span class="tech-text">not on a 21-key kalimba</span></span>`;
+    return;
+  }
   const offset = offsetForKey(getHarpKey());
   const techs = techniquesForMidi(n.midi, offset);
   if (techs.length) {

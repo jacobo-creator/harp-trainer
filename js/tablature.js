@@ -10,6 +10,24 @@
 
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { nameFromMidi } from "./notes.js";
+import { getInstrument } from "./settings.js";
+
+// 21-key kalimba: C-major, F3–E6. Number notation 1–7 = C D E F G A B, with an
+// octave dot above (higher) or below (lower) the digit. Returns the tab string,
+// or null if the note isn't on the instrument (a sharp/flat or out of range).
+const KALIMBA_DEGREE = { 0: 1, 2: 2, 4: 3, 5: 4, 7: 5, 9: 6, 11: 7 }; // C..B
+export function kalimbaTab(midi) {
+  if (midi < 53 || midi > 88) return null; // F3..E6
+  const pc = ((midi % 12) + 12) % 12;
+  const deg = KALIMBA_DEGREE[pc];
+  if (!deg) return null; // not a C-major note
+  const octave = Math.floor(midi / 12) - 1; // 60 = C4
+  const dot =
+    octave === 5 ? "̇" :        // one dot above
+    octave === 6 ? "̈" :        // two dots above (C6–E6)
+    octave === 3 ? "̣" : "";    // one dot below (F3–B3); octave 4 = no dot
+  return String(deg) + dot;
+}
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
@@ -49,11 +67,22 @@ function keyAccMap(key) {
   return m;
 }
 
-// Pick a tab for a MIDI note. If the exact note isn't reachable on this harp
-// (a chromatic note / overblow), fall back to the nearest playable note so the
-// player has something to play instead of skipping. Prefers the lower neighbour
-// (a chromatic is usually a raised scale tone). `substitute` flags the swap.
+// Pick a tab for a MIDI note on the current instrument. If the exact note isn't
+// reachable (a harmonica overblow / a kalimba sharp or out-of-range note), fall
+// back to the nearest playable note so the player has something to play instead
+// of skipping. `substitute` flags the swap.
 function pickTechnique(midi, offset) {
+  if (getInstrument() === "kalimba") {
+    const k = kalimbaTab(midi);
+    if (k) return { tab: k, substitute: false };
+    for (let d = 1; d <= 4; d++) {
+      for (const m of [midi - d, midi + d]) {
+        const kk = kalimbaTab(m);
+        if (kk) return { tab: kk, substitute: true };
+      }
+    }
+    return { tab: null, substitute: false };
+  }
   let t = techniquesForMidi(midi, offset);
   if (t.length) return { tab: t[0].tab, substitute: false };
   for (let d = 1; d <= 4; d++) {

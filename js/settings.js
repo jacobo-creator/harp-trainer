@@ -22,6 +22,42 @@ export function onHarpKeyChange(fn) {
   return () => listeners.delete(fn);
 }
 
+// ---- instrument (harmonica | kalimba) ----
+const INST_STORAGE = "instrument";
+let instrument = localStorage.getItem(INST_STORAGE) || "harmonica";
+const instListeners = new Set();
+
+export function getInstrument() {
+  return instrument;
+}
+
+export function setInstrument(value) {
+  instrument = value === "kalimba" ? "kalimba" : "harmonica";
+  localStorage.setItem(INST_STORAGE, instrument);
+  document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
+  instListeners.forEach((fn) => fn(instrument));
+}
+
+export function onInstrumentChange(fn) {
+  instListeners.add(fn);
+  return () => instListeners.delete(fn);
+}
+
+// Wire up <select data-instrument> and apply the initial body class.
+export function bindInstrumentSelectors() {
+  document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
+  const selects = document.querySelectorAll("select[data-instrument]");
+  selects.forEach((sel) => {
+    sel.value = instrument;
+    sel.addEventListener("change", () => setInstrument(sel.value));
+  });
+  onInstrumentChange((v) => {
+    selects.forEach((sel) => {
+      if (sel.value !== v) sel.value = v;
+    });
+  });
+}
+
 // Wire up any <select data-harp-key> elements to the shared setting.
 export function bindHarpKeySelectors() {
   const selects = document.querySelectorAll("select[data-harp-key]");

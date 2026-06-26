@@ -26,10 +26,19 @@
       <span class="brand-dot"></span>
       <h1>Harp Trainer</h1>
     </div>
-    <label class="harp-select">
-      <span>Harp</span>
-      <select data-harp-key aria-label="Harmonica key"></select>
-    </label>
+    <div class="header-controls">
+      <label class="harp-select">
+        <span>Play</span>
+        <select data-instrument aria-label="Instrument">
+          <option value="harmonica">Harmonica</option>
+          <option value="kalimba">Kalimba</option>
+        </select>
+      </label>
+      <label class="harp-select only-harmonica">
+        <span>Harp</span>
+        <select data-harp-key aria-label="Harmonica key"></select>
+      </label>
+    </div>
   </header>
 
   <main>
@@ -148,7 +157,7 @@
         <input id="song-title" class="title-input" placeholder="Song title" />
 
         <div class="field-pair">
-          <label class="field">
+          <label class="field only-harmonica">
             <span>Harmonica key</span>
             <select id="song-key"></select>
           </label>

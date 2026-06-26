@@ -54,7 +54,11 @@ body {
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
 }
+.header-controls { display: flex; align-items: center; gap: 10px; }
 .harp-select { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
+.inst-kalimba .only-harmonica { display: none !important; }
+/* combining octave dots on kalimba numbers need a touch more line room */
+.inst-kalimba .tech-tab, #song-tab { line-height: 1.8; }
 .harp-select select, #song-key, .a4 input, .a4 select {
   background: var(--bg-elev);
   color: var(--text);

@@ -4,8 +4,8 @@
 
 import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./store.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
-import { getHarpKey } from "./settings.js";
-import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune } from "./tablature.js";
+import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
+import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab } from "./tablature.js";
 import { parseImport, transcribeTrack } from "./importers.js";
 import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
 
@@ -170,6 +170,11 @@ export function initSongs() {
     })
   );
   document.getElementById("fit-harp").addEventListener("click", fitToHarp);
+  onInstrumentChange(() => {
+    updateFitLabel();
+    if (!el.editorView.classList.contains("hidden")) renderNotation();
+  });
+  updateFitLabel();
   document
     .getElementById("abc-template")
     .addEventListener("click", insertAbcTemplate);
@@ -647,6 +652,11 @@ function updateTransposeReadout() {
   el.transposeReadout.textContent = (t > 0 ? "+" : "") + t + (t ? " st" : "");
 }
 
+function updateFitLabel() {
+  const b = document.getElementById("fit-harp");
+  if (b) b.textContent = getInstrument() === "kalimba" ? "🎯 Fit to my kalimba" : "🎯 Fit to my harp key";
+}
+
 // One tap: transpose the song so it lays out best on the selected harp key
 // (first position), searching whole+semitone shifts for the most playable notes.
 function fitToHarp() {
@@ -654,10 +664,21 @@ function fitToHarp() {
     flash("Add some notation first");
     return;
   }
-  const harpKey = el.key.value;
-  const offset = offsetForKey(harpKey);
+  const kalimba = getInstrument() === "kalimba";
+  const offset = offsetForKey(el.key.value);
+  // Score how playable a note is on the current instrument (exact = 2, a near
+  // substitute = 1).
+  const playable = (m) => {
+    if (kalimba) {
+      if (kalimbaTab(m)) return 2;
+      return kalimbaTab(m - 1) || kalimbaTab(m + 1) ? 1 : 0;
+    }
+    if (techniquesForMidi(m, offset).length) return 2;
+    return techniquesForMidi(m - 1, offset).length || techniquesForMidi(m + 1, offset).length ? 1 : 0;
+  };
+
   const t0 = current.transpose || 0;
-  const base = melodyMidisFromTune(currentTune).map((m) => m - t0); // un-transposed
+  const base = melodyMidisFromTune(currentTune).map((m) => m - t0);
   if (!base.length) {
     flash("No notes to fit");
     return;
@@ -666,12 +687,7 @@ function fitToHarp() {
   let bestScore = -Infinity;
   for (let T = -24; T <= 24; T++) {
     let score = 0;
-    for (const m of base) {
-      const mm = m + T;
-      if (techniquesForMidi(mm, offset).length) score += 2;
-      else if (techniquesForMidi(mm - 1, offset).length || techniquesForMidi(mm + 1, offset).length)
-        score += 1;
-    }
+    for (const m of base) score += playable(m + T);
     score -= Math.abs(T) * 0.001; // tie-break toward the smallest shift
     if (score > bestScore) {
       bestScore = score;
@@ -681,7 +697,7 @@ function fitToHarp() {
   current.transpose = bestT;
   updateTransposeReadout();
   renderNotation();
-  flash(`Fitted to your ${harpKey} harp`);
+  flash(kalimba ? "Fitted to your kalimba" : `Fitted to your ${el.key.value} harp`);
 }
 
 async function playAbc() {

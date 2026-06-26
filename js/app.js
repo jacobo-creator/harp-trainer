@@ -3,7 +3,7 @@
 import { initTuner, stopTuner } from "./tuner.js";
 import { initSongs, refreshSongs } from "./songs.js";
 import { initMetronome, stopMetronome } from "./metronome.js";
-import { bindHarpKeySelectors } from "./settings.js";
+import { bindHarpKeySelectors, bindInstrumentSelectors } from "./settings.js";
 
 const views = {
   tuner: document.getElementById("view-tuner"),
@@ -28,6 +28,7 @@ tabs.forEach((t) =>
 );
 
 bindHarpKeySelectors();
+bindInstrumentSelectors();
 initTuner();
 initMetronome();
 initSongs();
