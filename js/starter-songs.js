@@ -271,4 +271,42 @@ export const STARTER_SONGS = [
       "a b c' d' e' c' e' | d' f' d'2 | a b c' d' e' c' e' | f' e' c'2 |\n",
     notes: "Grieg's creeping theme (upper octave so it's playable). Start slow and speed up — that's the whole idea!",
   },
+
+  // ---------------- fun (great on kalimba, also work on harmonica) ----------------
+  {
+    id: "fun-happybirthday",
+    title: "Happy Birthday",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Happy Birthday\nM:3/4\nL:1/4\nK:C\n" +
+      "G/G/ | A G c | B2 G/G/ | A G d | c2 G/G/ | g e c | B A F/F/ | e c d | c3 |\n",
+    lyrics:
+      "Hap-py birth-day to you Hap-py birth-day to you " +
+      "Hap-py birth-day dear some-one Hap-py birth-day to you",
+    notes: "Everyone needs this one. Lovely and easy on the kalimba.",
+  },
+  {
+    id: "fun-yankee",
+    title: "Yankee Doodle",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Yankee Doodle\nM:4/4\nL:1/4\nK:C\n" +
+      "c c d e | c e d2 | c c d e | d2 z2 | c c d e | f e d c | B G A B | c2 z2 |\n",
+    notes: "Bouncy and bright — fun to play fast.",
+  },
+  {
+    id: "fun-morningmood",
+    title: "Morning Mood — Grieg",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Morning Mood\nM:6/8\nL:1/8\nK:C\n" +
+      "g e d c d e | g e d c d e | g a g e d c | d2 e2 c2 |\n",
+    notes: "Gentle and flowing (from Peer Gynt) — beautiful on the kalimba's bright tines.",
+  },
 ];
