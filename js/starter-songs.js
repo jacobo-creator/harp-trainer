@@ -309,4 +309,31 @@ export const STARTER_SONGS = [
       "g e d c d e | g e d c d e | g a g e d c | d2 e2 c2 |\n",
     notes: "Gentle and flowing (from Peer Gynt) — beautiful on the kalimba's bright tines.",
   },
+
+  // ---------------- pretty & calming (longer pieces) ----------------
+  {
+    id: "calm-amazinggrace",
+    title: "Amazing Grace",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Amazing Grace\nM:3/4\nL:1/4\nK:C\n" +
+      "G | c e c | e d c | A3 | G c e | c e d | g3 |" +
+      " e g e | c A c | A2 G | G c e | c e d | c3 |\n",
+    notes: "A calm, pentatonic classic — flows beautifully on the kalimba. All C, D, E, G, A (no awkward notes).",
+  },
+  {
+    id: "calm-auldlangsyne",
+    title: "Auld Lang Syne",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Auld Lang Syne\nM:4/4\nL:1/4\nK:C\n" +
+      "G | c c e d | c2 d2 | e c c e | g2 a2 | a g e e | c d c d |" +
+      " e d c A | A G c2 | a g e e | c d c d | a g e e | g2 a2 |" +
+      " c' g e e | c d c d | e d c A | A G c2 |\n",
+    notes: "Nostalgic and gentle — a nice longer piece to settle into. Pentatonic, so easy on the ear.",
+  },
 ];
