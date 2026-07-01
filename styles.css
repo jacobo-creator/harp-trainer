@@ -57,6 +57,21 @@ body {
 .header-controls { display: flex; align-items: center; gap: 10px; }
 .harp-select { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
 .inst-kalimba .only-harmonica { display: none !important; }
+.only-kalimba { display: none; }
+.inst-kalimba .only-kalimba { display: block; }
+.kalimba-tines {
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 3px; padding: 12px 0 4px; overflow-x: auto;
+}
+.kalimba-tine { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: none; }
+.ktine-bar {
+  width: 9px; border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+}
+.ktine-num {
+  font-size: .72rem; color: var(--text); line-height: 1.6;
+  font-family: ui-monospace, Menlo, monospace;
+}
 /* combining octave dots on kalimba numbers need a touch more line room */
 .inst-kalimba .tech-tab, #song-tab { line-height: 1.8; }
 .harp-select select, #song-key, .a4 input, .a4 select {
