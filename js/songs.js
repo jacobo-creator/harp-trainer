@@ -6,7 +6,7 @@ import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
 import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab } from "./tablature.js";
-import { parseImport, transcribeTrack } from "./importers.js";
+import { parseImport, transcribeTrack, kalimbaTabToAbc } from "./importers.js";
 import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
 
 const el = {};
@@ -81,6 +81,23 @@ export function initSongs() {
     el.onlinePanel.classList.toggle("hidden");
     if (!el.onlinePanel.classList.contains("hidden")) el.onlineQuery.focus();
   });
+
+  // paste-tab
+  el.pasteBtn = document.getElementById("song-paste");
+  el.pastePanel = document.getElementById("paste-panel");
+  el.pasteTitle = document.getElementById("paste-title");
+  el.pasteText = document.getElementById("paste-text");
+  el.pasteCreate = document.getElementById("paste-create");
+  el.pasteBtn.addEventListener("click", () => {
+    el.pastePanel.classList.toggle("hidden");
+    if (!el.pastePanel.classList.contains("hidden")) el.pasteText.focus();
+  });
+  el.pasteCreate.addEventListener("click", createFromPastedTab);
+
+  // reference link (in the editor)
+  el.refUrl = document.getElementById("song-refurl");
+  el.refUrlOpen = document.getElementById("song-refurl-open");
+  el.refUrl.addEventListener("input", updateRefLink);
   el.onlineGo.addEventListener("click", runOnlineSearch);
   el.onlineQuery.addEventListener("keydown", (e) => {
     if (e.key === "Enter") runOnlineSearch();
@@ -233,6 +250,7 @@ async function renderList() {
       const badges = [
         s.tab ? "tab" : null,
         s.abc ? "notation" : null,
+        s.refUrl ? "🔗" : null,
         s.photos && s.photos.length ? `${s.photos.length}📷` : null,
       ].filter(Boolean);
       const diff = s.difficulty
@@ -298,7 +316,9 @@ async function onImportFile(e) {
   try {
     const parsed = await parseImport(file, (msg, pct) => updateAiProgress(msg, pct));
     hideAiProgress();
-    if (parsed.kind === "abc") {
+    if (parsed.kind === "bulk") {
+      await importBulk(parsed.songs);
+    } else if (parsed.kind === "abc") {
       openEditorWithContent({ abc: parsed.abc, title: parsed.title, key: parsed.key });
       if (parsed.warning) setTimeout(() => alert(parsed.warning), 50);
       else flash("Imported — review and Save");
@@ -310,6 +330,59 @@ async function onImportFile(e) {
     console.error(err);
     alert("Couldn't import this file:\n" + (err.message || err));
   }
+}
+
+// Create many songs at once from a JSON list ({title, refUrl, tab, abc, ...}).
+async function importBulk(list) {
+  let n = 0;
+  for (const s of list) {
+    if (!s || !s.title) continue;
+    try {
+      await saveSong({
+        title: String(s.title),
+        key: s.key || "C",
+        tab: s.tab || "",
+        abc: s.abc || "",
+        notes: s.notes || "",
+        lyrics: s.lyrics || "",
+        difficulty: s.difficulty || "",
+        refUrl: s.refUrl || s.url || "",
+        customTab: !!s.customTab,
+      });
+      n++;
+    } catch (e) {
+      console.warn("Skipped a bulk song", e);
+    }
+  }
+  flash(`Imported ${n} song${n === 1 ? "" : "s"}`);
+  renderList();
+}
+
+// Turn pasted kalimba numbers into a new song.
+function createFromPastedTab() {
+  const text = el.pasteText.value.trim();
+  if (!text) {
+    flash("Paste some kalimba numbers first");
+    return;
+  }
+  const title = el.pasteTitle.value.trim() || "Pasted tab";
+  try {
+    const abc = kalimbaTabToAbc(text, title);
+    el.pastePanel.classList.add("hidden");
+    el.pasteText.value = "";
+    el.pasteTitle.value = "";
+    openEditorWithContent({ abc, title, key: "C" });
+    flash("Created — review and Save");
+  } catch (err) {
+    alert(err.message || err);
+  }
+}
+
+function updateRefLink() {
+  const url = el.refUrl.value.trim();
+  const ok = /^https?:\/\//i.test(url);
+  el.refUrlOpen.style.display = ok ? "" : "none";
+  if (ok) el.refUrlOpen.href = url;
 }
 
 function showAiProgress(msg, pct) {
@@ -524,6 +597,8 @@ function fillEditor() {
   el.abc.value = current.abc || "";
   el.notes.value = current.notes || "";
   el.lyrics.value = current.lyrics || "";
+  el.refUrl.value = current.refUrl || "";
+  updateRefLink();
   el.difficulty.value = current.difficulty || "";
   current.transpose = current.transpose || 0;
   current.customTab = !!current.customTab;
@@ -556,6 +631,7 @@ async function save() {
   current.abc = el.abc.value;
   current.notes = el.notes.value;
   current.lyrics = el.lyrics.value;
+  current.refUrl = el.refUrl.value.trim();
   current.difficulty = el.difficulty.value;
   current.customTab = el.tabCustom.checked;
   const saved = await saveSong(current);

@@ -12,6 +12,33 @@ import { detectPitch } from "./pitch.js";
 import { nameFromMidi } from "./notes.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 
+// Parse pasted kalimba number notation into ABC. Numbers 1–7 = C D E F G A B;
+// an octave dot/mark ABOVE raises an octave (' ° * + or a combining dot), a
+// mark BELOW lowers it (. _ or a combining dot below); two above = top octave.
+// Chords in ( ) are reduced to their top note. Rhythm isn't encoded in kalimba
+// tabs, so notes come out even (quarter notes) for you to tidy.
+const KALIMBA_DEG_PC = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 };
+export function kalimbaTabToAbc(text, title) {
+  const events = [];
+  const tokens = String(text || "").replace(/[\r\n]+/g, " ").match(/\([^)]*\)|[^\s|]+/g) || [];
+  for (const raw of tokens) {
+    const chord = [];
+    const re = /([.̣_]*)([1-7])(['’°*+̇̈".̣_]*)/g;
+    let m;
+    while ((m = re.exec(raw))) {
+      const marks = (m[1] || "") + (m[3] || "");
+      const above2 = (marks.match(/["̈]/g) || []).length;
+      const above1 = (marks.match(/['’°*+̇]/g) || []).length;
+      const below = (marks.match(/[._̣]/g) || []).length;
+      const octave = 4 + above1 + 2 * above2 - below;
+      chord.push((octave + 1) * 12 + KALIMBA_DEG_PC[+m[2]]);
+    }
+    if (chord.length) events.push({ midi: Math.max(...chord), len: 4 });
+  }
+  if (!events.length) throw new Error("No kalimba numbers found — paste digits 1–7 (with octave dots).");
+  return assembleAbc(title || "Pasted tab", 4, 4, events, 16);
+}
+
 // Shift a melody (events with .midi) by whole octaves so its median note sits
 // in the harp's comfortable register (~G4–C6). Extracted vocals are often well
 // below harmonica range, which is why nothing was playable.
@@ -467,6 +494,17 @@ export async function parseImport(file, onProgress) {
   const lower = file.name.toLowerCase();
   const base = file.name.replace(/\.[^.]+$/, "");
 
+  if (lower.endsWith(".json")) {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch {
+      throw new Error("That .json file isn't valid.");
+    }
+    const list = Array.isArray(data) ? data : data.songs;
+    if (!Array.isArray(list)) throw new Error("Expected a JSON list of songs.");
+    return { kind: "bulk", songs: list };
+  }
   if (lower.endsWith(".abc")) return { kind: "abc", abc: await file.text(), title: base };
   if (lower.endsWith(".mid") || lower.endsWith(".midi"))
     return parseMidi(await file.arrayBuffer(), base);
