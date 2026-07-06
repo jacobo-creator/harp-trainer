@@ -31,11 +31,17 @@ export function getInstrument() {
   return instrument;
 }
 
+const INSTRUMENTS = ["harmonica", "kalimba", "violin"];
 export function setInstrument(value) {
-  instrument = value === "kalimba" ? "kalimba" : "harmonica";
+  instrument = INSTRUMENTS.includes(value) ? value : "harmonica";
   localStorage.setItem(INST_STORAGE, instrument);
-  document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
+  applyInstrumentClass();
   instListeners.forEach((fn) => fn(instrument));
+}
+
+function applyInstrumentClass() {
+  document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
+  document.body.classList.toggle("inst-violin", instrument === "violin");
 }
 
 export function onInstrumentChange(fn) {
@@ -45,7 +51,7 @@ export function onInstrumentChange(fn) {
 
 // Wire up <select data-instrument> and apply the initial body class.
 export function bindInstrumentSelectors() {
-  document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
+  applyInstrumentClass();
   const selects = document.querySelectorAll("select[data-instrument]");
   selects.forEach((sel) => {
     sel.value = instrument;

@@ -32,6 +32,7 @@
         <select data-instrument aria-label="Instrument">
           <option value="harmonica">Harmonica</option>
           <option value="kalimba">Kalimba</option>
+          <option value="violin">Violin</option>
         </select>
       </label>
       <label class="harp-select only-harmonica">
@@ -100,6 +101,16 @@
         <p>The centre tine is the longest and <strong>lowest</strong> note (F).
         Numbers match your kalimba's stickers: <code>1</code>–<code>7</code> = C–B,
         a dot <em>above</em> = higher octave, a dot <em>below</em> = the bass notes.</p>
+      </details>
+
+      <details class="help only-violin" open>
+        <summary>Violin — first position</summary>
+        <p>The tab shows the <strong>string</strong> and <strong>finger</strong> —
+        e.g. <code>A2</code> = A string, 2nd finger; <code>D0</code> = open D.
+        <strong>0</strong> = open string, then fingers <strong>1 2 3 4</strong> go up.</p>
+        <div id="violin-strings" class="violin-strings"></div>
+        <p class="hint">Standard first-position notes (with finger tapes). The
+        staff shows if a note is sharp/flat (a “high” or “low” finger).</p>
       </details>
     </section>
 
@@ -190,7 +201,7 @@
 
         <div class="field">
           <span class="field-label-row">
-            <span>Harmonica tab</span>
+            <span id="tab-field-label">Harmonica tab</span>
             <label class="tab-custom-label">
               <input type="checkbox" id="tab-custom" />
               Custom (edit manually)
@@ -208,7 +219,7 @@
           <textarea id="song-abc" rows="5" placeholder="X:1&#10;T:Title&#10;K:C&#10;C D E F | G A B c |"></textarea>
           <label class="tab-toggle">
             <input type="checkbox" id="tab-overlay-toggle" checked />
-            Show harmonica tab under each note (uses the key above)
+            <span id="tab-toggle-label">Show harmonica tab under each note (uses the key above)</span>
           </label>
           <div class="transpose-field">
             <span>Transpose</span>

@@ -58,9 +58,39 @@ tabs.forEach((t) =>
   t.addEventListener("click", () => show(t.dataset.view))
 );
 
+// Beginner first-position finger chart: each string's notes at fingers 0–4.
+function renderViolinReference() {
+  const host = document.getElementById("violin-strings");
+  if (!host) return;
+  const NAME = (m) =>
+    ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][((m % 12) + 12) % 12];
+  const strings = [
+    { n: "G", open: 55 },
+    { n: "D", open: 62 },
+    { n: "A", open: 69 },
+    { n: "E", open: 76 },
+  ];
+  const pattern = [0, 2, 4, 5, 7]; // fingers 0–4 (major finger pattern)
+  host.innerHTML = strings
+    .map(
+      (s) =>
+        `<div class="vstring"><span class="vstring-name">${s.n}</span>` +
+        pattern
+          .map(
+            (semi, f) =>
+              `<span class="vnote"><span class="vfinger">${f}</span>` +
+              `<span class="vname">${NAME(s.open + semi)}</span></span>`
+          )
+          .join("") +
+        `</div>`
+    )
+    .join("");
+}
+
 bindHarpKeySelectors();
 bindInstrumentSelectors();
 renderKalimbaLayout();
+renderViolinReference();
 initTuner();
 initMetronome();
 initSongs();

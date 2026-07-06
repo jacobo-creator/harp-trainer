@@ -4,7 +4,7 @@ import { detectPitch, Smoother } from "./pitch.js";
 import { noteFromFrequency } from "./notes.js";
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey, getInstrument } from "./settings.js";
-import { kalimbaTab } from "./tablature.js";
+import { kalimbaTab, violinTab } from "./tablature.js";
 
 let audioCtx = null;
 let analyser = null;
@@ -174,7 +174,22 @@ function render(n, freq) {
     el.intune.className = "in-tune sharp";
   }
 
-  // Instrument-specific hint: kalimba number, or harmonica hole/breath/bend.
+  // Instrument-specific hint: violin string+finger, kalimba number, or harp.
+  if (getInstrument() === "violin") {
+    const v = violinTab(n.midi);
+    if (v) {
+      const str = v[0];
+      const fin = v.slice(1);
+      el.technique.innerHTML =
+        `<span class="tech-chip"><span class="tech-tab">${v}</span>` +
+        `<span class="tech-text">${str} string · ${fin === "0" ? "open" : "finger " + fin}</span></span>`;
+    } else {
+      el.technique.innerHTML =
+        `<span class="tech-chip none">${n.label} ` +
+        `<span class="tech-text">(not in first position)</span></span>`;
+    }
+    return;
+  }
   if (getInstrument() === "kalimba") {
     const k = kalimbaTab(n.midi);
     el.technique.innerHTML = k

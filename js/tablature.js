@@ -67,11 +67,34 @@ function keyAccMap(key) {
   return m;
 }
 
+// A 4-string violin (open strings G3 D4 A4 E5), first position. Returns
+// string + finger (0 = open), e.g. "A2" = A string, 2nd finger. The finger
+// number is right for any note; the staff shows whether it's a high/low
+// placement (a sharp/flat). Returns null below G3 or above first position.
+const VIOLIN_STRINGS = [
+  { name: "E", open: 76 },
+  { name: "A", open: 69 },
+  { name: "D", open: 62 },
+  { name: "G", open: 55 },
+];
+const VIOLIN_FINGER = { 0: "0", 1: "1", 2: "1", 3: "2", 4: "2", 5: "3", 6: "3", 7: "4" };
+export function violinTab(midi) {
+  const s = VIOLIN_STRINGS.find((st) => midi >= st.open);
+  if (!s) return null;
+  const finger = VIOLIN_FINGER[midi - s.open];
+  if (finger === undefined) return null;
+  return s.name + finger;
+}
+
 // Pick a tab for a MIDI note on the current instrument. If the exact note isn't
 // reachable (a harmonica overblow / a kalimba sharp or out-of-range note), fall
 // back to the nearest playable note so the player has something to play instead
 // of skipping. `substitute` flags the swap.
 function pickTechnique(midi, offset) {
+  if (getInstrument() === "violin") {
+    // chromatic instrument — any in-range note is exactly playable
+    return { tab: violinTab(midi), substitute: false };
+  }
   if (getInstrument() === "kalimba") {
     const k = kalimbaTab(midi);
     if (k) return { tab: k, substitute: false };

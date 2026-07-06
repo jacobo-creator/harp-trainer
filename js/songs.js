@@ -5,7 +5,7 @@
 import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./store.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
-import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab } from "./tablature.js";
+import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab, violinTab } from "./tablature.js";
 import { parseImport, transcribeTrack, kalimbaTabToAbc } from "./importers.js";
 import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
 
@@ -729,8 +729,29 @@ function updateTransposeReadout() {
 }
 
 function updateFitLabel() {
+  const inst = getInstrument();
   const b = document.getElementById("fit-harp");
-  if (b) b.textContent = getInstrument() === "kalimba" ? "🎯 Fit to my kalimba" : "🎯 Fit to my harp key";
+  if (b) {
+    b.textContent =
+      inst === "kalimba"
+        ? "🎯 Fit to my kalimba"
+        : inst === "violin"
+        ? "🎯 Fit to first position"
+        : "🎯 Fit to my harp key";
+  }
+  // Keep the tab-field labels honest for whichever instrument is selected.
+  const word = inst === "kalimba" ? "Kalimba" : inst === "violin" ? "Violin" : "Harmonica";
+  const fieldLabel = document.getElementById("tab-field-label");
+  if (fieldLabel) fieldLabel.textContent = `${word} tab`;
+  const toggleLabel = document.getElementById("tab-toggle-label");
+  if (toggleLabel) {
+    toggleLabel.textContent =
+      inst === "violin"
+        ? "Show string + finger under each note"
+        : inst === "kalimba"
+        ? "Show kalimba number under each note"
+        : "Show harmonica tab under each note (uses the key above)";
+  }
 }
 
 // One tap: transpose the song so it lays out best on the selected harp key
@@ -740,12 +761,13 @@ function fitToHarp() {
     flash("Add some notation first");
     return;
   }
-  const kalimba = getInstrument() === "kalimba";
+  const inst = getInstrument();
   const offset = offsetForKey(el.key.value);
   // Score how playable a note is on the current instrument (exact = 2, a near
   // substitute = 1).
   const playable = (m) => {
-    if (kalimba) {
+    if (inst === "violin") return violinTab(m) ? 2 : 0; // first-position range
+    if (inst === "kalimba") {
       if (kalimbaTab(m)) return 2;
       return kalimbaTab(m - 1) || kalimbaTab(m + 1) ? 1 : 0;
     }
@@ -773,7 +795,13 @@ function fitToHarp() {
   current.transpose = bestT;
   updateTransposeReadout();
   renderNotation();
-  flash(kalimba ? "Fitted to your kalimba" : `Fitted to your ${el.key.value} harp`);
+  flash(
+    inst === "violin"
+      ? "Fitted to first position"
+      : inst === "kalimba"
+      ? "Fitted to your kalimba"
+      : `Fitted to your ${el.key.value} harp`
+  );
 }
 
 async function playAbc() {
