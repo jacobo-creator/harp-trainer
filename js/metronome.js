@@ -1,6 +1,10 @@
 // Practice metronome. Uses the Web Audio clock with look-ahead scheduling
 // (Chris Wilson's "A Tale of Two Clocks") so clicks stay rock-steady even if
 // the JS timer jitters. The downbeat is accented.
+//
+// The engine is a singleton so only one click ever plays at a time. Both the
+// Metronome tab and the compact control on the song page bind to it and stay in
+// sync through the state/beat listeners.
 
 let ctx = null;
 let running = false;
@@ -13,51 +17,57 @@ const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD = 0.12; // seconds
 const visualQueue = [];
 
-const el = {};
 let tapTimes = [];
+const stateListeners = new Set(); // fn({ bpm, beatsPerBar, running })
+const beatListeners = new Set(); // fn(activeBeat, beatsPerBar)  (-1 = none)
 
-export function initMetronome() {
-  el.bpm = document.getElementById("metro-bpm");
-  el.slider = document.getElementById("metro-slider");
-  el.dec = document.getElementById("metro-dec");
-  el.inc = document.getElementById("metro-inc");
-  el.tap = document.getElementById("metro-tap");
-  el.beats = document.getElementById("metro-beats");
-  el.toggle = document.getElementById("metro-toggle");
-  el.dots = document.getElementById("metro-dots");
+// ---- Engine (shared) --------------------------------------------------------
 
-  bpm = clampBpm(parseInt(localStorage.getItem("metro-bpm")) || 100);
-  beatsPerBar = parseInt(localStorage.getItem("metro-beats")) || 4;
-  el.slider.value = bpm;
-  el.beats.value = String(beatsPerBar);
-  el.bpm.textContent = bpm;
-  renderDots(-1);
+export function getBpm() {
+  return bpm;
+}
+export function getBeats() {
+  return beatsPerBar;
+}
+export function isMetroRunning() {
+  return running;
+}
 
-  el.slider.addEventListener("input", () => setBpm(+el.slider.value));
-  el.dec.addEventListener("click", () => setBpm(bpm - 1));
-  el.inc.addEventListener("click", () => setBpm(bpm + 1));
-  el.beats.addEventListener("change", () => {
-    beatsPerBar = +el.beats.value;
-    localStorage.setItem("metro-beats", String(beatsPerBar));
-    currentBeat = 0;
-    renderDots(-1);
-  });
-  el.tap.addEventListener("click", tapTempo);
-  el.toggle.addEventListener("click", () => (running ? stop() : start()));
+export function onMetroState(fn) {
+  stateListeners.add(fn);
+  return () => stateListeners.delete(fn);
+}
+export function onMetroBeat(fn) {
+  beatListeners.add(fn);
+  return () => beatListeners.delete(fn);
+}
+
+function notifyState() {
+  stateListeners.forEach((fn) => fn({ bpm, beatsPerBar, running }));
+}
+function notifyBeat(active) {
+  beatListeners.forEach((fn) => fn(active, beatsPerBar));
 }
 
 function clampBpm(v) {
   return Math.max(40, Math.min(240, Math.round(v)));
 }
 
-function setBpm(v) {
+export function setBpm(v) {
   bpm = clampBpm(v);
-  el.bpm.textContent = bpm;
-  el.slider.value = bpm;
   localStorage.setItem("metro-bpm", String(bpm));
+  notifyState();
 }
 
-function tapTempo() {
+export function setBeats(v) {
+  beatsPerBar = Math.max(1, Math.min(12, Math.round(+v) || 4));
+  localStorage.setItem("metro-beats", String(beatsPerBar));
+  currentBeat = 0;
+  notifyState();
+  notifyBeat(-1);
+}
+
+export function tapTempo() {
   const now = performance.now();
   tapTimes = tapTimes.filter((t) => now - t < 2000);
   tapTimes.push(now);
@@ -66,15 +76,6 @@ function tapTempo() {
     for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
     const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     setBpm(60000 / avg);
-  }
-}
-
-function renderDots(active) {
-  el.dots.innerHTML = "";
-  for (let i = 0; i < beatsPerBar; i++) {
-    const dot = document.createElement("span");
-    dot.className = "metro-dot" + (i === 0 ? " accent" : "") + (i === active ? " on" : "");
-    el.dots.appendChild(dot);
   }
 }
 
@@ -100,15 +101,14 @@ function scheduler() {
   timerId = setTimeout(scheduler, LOOKAHEAD_MS);
 }
 
-async function start() {
+export async function startMetronome() {
   if (running) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === "suspended") await ctx.resume();
   running = true;
   currentBeat = 0;
   nextNoteTime = ctx.currentTime + 0.06;
-  el.toggle.textContent = "Stop";
-  el.toggle.classList.add("active");
+  notifyState();
   scheduler();
   requestAnimationFrame(draw);
 }
@@ -117,7 +117,7 @@ function draw() {
   if (!running) return;
   const now = ctx.currentTime;
   while (visualQueue.length && visualQueue[0].time <= now) {
-    renderDots(visualQueue.shift().beat);
+    notifyBeat(visualQueue.shift().beat);
   }
   requestAnimationFrame(draw);
 }
@@ -129,9 +129,90 @@ export function stopMetronome() {
   if (ctx) ctx.close();
   ctx = null;
   visualQueue.length = 0;
-  el.toggle.textContent = "Start";
-  el.toggle.classList.remove("active");
-  renderDots(-1);
+  notifyState();
+  notifyBeat(-1);
 }
 
-const stop = stopMetronome;
+export function toggleMetronome() {
+  return running ? stopMetronome() : startMetronome();
+}
+
+// Build/refresh the beat dots inside `host`, highlighting `active` (-1 = none).
+function renderDots(host, active) {
+  if (!host) return;
+  host.innerHTML = "";
+  for (let i = 0; i < beatsPerBar; i++) {
+    const dot = document.createElement("span");
+    dot.className =
+      "metro-dot" + (i === 0 ? " accent" : "") + (i === active ? " on" : "");
+    host.appendChild(dot);
+  }
+}
+
+// ---- Metronome tab UI -------------------------------------------------------
+
+export function initMetronome() {
+  const bpmEl = document.getElementById("metro-bpm");
+  const slider = document.getElementById("metro-slider");
+  const dec = document.getElementById("metro-dec");
+  const inc = document.getElementById("metro-inc");
+  const tap = document.getElementById("metro-tap");
+  const beats = document.getElementById("metro-beats");
+  const toggle = document.getElementById("metro-toggle");
+  const dots = document.getElementById("metro-dots");
+
+  bpm = clampBpm(parseInt(localStorage.getItem("metro-bpm")) || 100);
+  beatsPerBar = parseInt(localStorage.getItem("metro-beats")) || 4;
+
+  slider.addEventListener("input", () => setBpm(+slider.value));
+  dec.addEventListener("click", () => setBpm(bpm - 1));
+  inc.addEventListener("click", () => setBpm(bpm + 1));
+  beats.addEventListener("change", () => setBeats(+beats.value));
+  tap.addEventListener("click", tapTempo);
+  toggle.addEventListener("click", toggleMetronome);
+
+  const sync = () => {
+    bpmEl.textContent = bpm;
+    slider.value = bpm;
+    beats.value = String(beatsPerBar);
+    toggle.textContent = running ? "Stop" : "Start";
+    toggle.classList.toggle("active", running);
+    renderDots(dots, -1);
+  };
+  onMetroState(sync);
+  onMetroBeat((active) => renderDots(dots, active));
+  sync();
+}
+
+// ---- Compact song-page control ---------------------------------------------
+
+export function bindSongMetronome() {
+  const bpmEl = document.getElementById("song-metro-bpm");
+  const slider = document.getElementById("song-metro-slider");
+  const dec = document.getElementById("song-metro-dec");
+  const inc = document.getElementById("song-metro-inc");
+  const tap = document.getElementById("song-metro-tap");
+  const beats = document.getElementById("song-metro-beats");
+  const toggle = document.getElementById("song-metro-toggle");
+  const dots = document.getElementById("song-metro-dots");
+  if (!toggle) return;
+
+  slider.addEventListener("input", () => setBpm(+slider.value));
+  dec.addEventListener("click", () => setBpm(bpm - 1));
+  inc.addEventListener("click", () => setBpm(bpm + 1));
+  beats.addEventListener("change", () => setBeats(+beats.value));
+  tap.addEventListener("click", tapTempo);
+  toggle.addEventListener("click", toggleMetronome);
+
+  const sync = () => {
+    bpmEl.textContent = bpm;
+    slider.value = bpm;
+    beats.value = String(beatsPerBar);
+    toggle.textContent = running ? "◼ Stop" : "▶ Start";
+    toggle.classList.toggle("active", running);
+    renderDots(dots, -1);
+  };
+  onMetroState(sync);
+  onMetroBeat((active) => renderDots(dots, active));
+  sync();
+}

@@ -8,6 +8,13 @@ import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
 import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab, violinTab } from "./tablature.js";
 import { parseImport, transcribeTrack, kalimbaTabToAbc } from "./importers.js";
 import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
+import {
+  bindSongMetronome,
+  setBpm,
+  setBeats,
+  onMetroState,
+  stopMetronome,
+} from "./metronome.js";
 
 const el = {};
 let current = null; // song being edited
@@ -192,6 +199,17 @@ export function initSongs() {
     if (!el.editorView.classList.contains("hidden")) renderNotation();
   });
   updateFitLabel();
+
+  // Practice metronome on the song page: bind the shared engine, and remember
+  // whatever tempo the player dials in with each song.
+  bindSongMetronome();
+  el.metroHint = document.getElementById("song-metro-hint");
+  onMetroState(({ bpm, beatsPerBar }) => {
+    if (current && !el.editorView.classList.contains("hidden")) {
+      current.tempo = bpm;
+      current.beats = beatsPerBar;
+    }
+  });
   document
     .getElementById("abc-template")
     .addEventListener("click", insertAbcTemplate);
@@ -613,12 +631,69 @@ function fillEditor() {
   el.editorView.classList.remove("hidden");
   el.editorView.scrollTop = 0;
   autosizeTab(); // now that the field is visible, size it to its content
+  seedMetronome(); // dial the practice tempo to this song
+}
+
+// Set the practice metronome for the song now open: a saved practice tempo
+// wins; otherwise fall back to the written Q:/M: in the notation. Also surface
+// the sheet's written tempo as a one-tap "snap back".
+function seedMetronome() {
+  const written = parseAbcTempo(el.abc.value);
+  const beats = current.beats || written.beats;
+  const tempo = current.tempo || written.bpm;
+  if (beats) setBeats(beats);
+  if (tempo) setBpm(tempo); // onMetroState records the clamped value onto `current`
+  if (!el.metroHint) return;
+  if (written.bpm) {
+    el.metroHint.style.display = "";
+    el.metroHint.innerHTML =
+      `Sheet tempo: ♩ = ${written.bpm} · ` +
+      `<button type="button" class="link-btn" id="song-metro-use">use</button>`;
+    document
+      .getElementById("song-metro-use")
+      .addEventListener("click", () => setBpm(written.bpm));
+  } else {
+    el.metroHint.style.display = "none";
+  }
+}
+
+// Read a beats-per-bar and a beats-per-minute out of ABC headers, if present.
+// Q: forms handled: "Q:120", "Q:1/4=120", 'Q:"Allegro" 1/4=120'. M: forms:
+// "M:4/4", "M:6/8", "M:C" (=4/4), "M:C|" (cut time = 2/2).
+function parseAbcTempo(abc) {
+  let bpm = null;
+  let beats = null;
+  const q = (abc || "").match(/^\s*Q:\s*(.+)$/im);
+  if (q) {
+    const eq = q[1].match(/=\s*(\d+)/); // "…=120"
+    const bare = q[1].match(/(\d+)\s*$/); // trailing bare number
+    if (eq) bpm = +eq[1];
+    else if (bare) bpm = +bare[1];
+  }
+  const m = (abc || "").match(/^\s*M:\s*(\S+)/im);
+  if (m) {
+    const v = m[1];
+    if (/^C\|/i.test(v)) beats = 2;
+    else if (/^C$/i.test(v)) beats = 4;
+    else {
+      const num = v.match(/^(\d+)/);
+      if (num) beats = +num[1];
+    }
+    // The beats select only offers 1,2,3,4,6 — map anything else to a sensible
+    // felt pulse so the accent still lands on the downbeat.
+    if (beats && ![1, 2, 3, 4, 6].includes(beats)) {
+      if (beats % 3 === 0) beats = beats / 3; // compound meters → felt pulses
+      if (![1, 2, 3, 4, 6].includes(beats)) beats = 4;
+    }
+  }
+  return { bpm, beats };
 }
 
 function closeEditor() {
   el.editorView.classList.add("hidden");
   el.listView.classList.remove("hidden");
   stopAbc();
+  stopMetronome();
   current = null;
   renderList();
 }

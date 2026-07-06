@@ -236,6 +236,34 @@
             <div id="song-notation" class="notation"></div>
             <button id="abc-play" class="ghost" disabled>▶ Play</button>
           </div>
+
+          <div class="song-metro">
+            <div class="song-metro-head">
+              <span class="song-metro-title">Practice metronome</span>
+              <span class="song-metro-readout"><strong id="song-metro-bpm">100</strong> BPM</span>
+            </div>
+            <div id="song-metro-dots" class="metro-dots"></div>
+            <div class="song-metro-controls">
+              <button type="button" id="song-metro-dec" class="ghost">−</button>
+              <input id="song-metro-slider" class="metro-slider" type="range"
+                     min="40" max="240" value="100" step="1" />
+              <button type="button" id="song-metro-inc" class="ghost">+</button>
+            </div>
+            <div class="song-metro-row">
+              <button type="button" id="song-metro-toggle" class="primary metro-go">▶ Start</button>
+              <button type="button" id="song-metro-tap" class="ghost">Tap</button>
+              <label class="song-metro-beats">Beats
+                <select id="song-metro-beats">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4" selected>4</option>
+                  <option value="6">6</option>
+                </select>
+              </label>
+            </div>
+            <small class="hint" id="song-metro-hint" style="display:none"></small>
+          </div>
         </div>
 
         <label class="field">

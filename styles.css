@@ -351,6 +351,28 @@ textarea, .field select {
 }
 .metro-go { min-width: 160px; }
 
+/* Compact practice metronome inside the song editor. */
+.song-metro {
+  margin-top: 14px; padding: 14px;
+  background: var(--bg-elev); border: 1px solid var(--line); border-radius: 14px;
+  display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+.song-metro-head {
+  width: 100%; display: flex; align-items: baseline; justify-content: space-between;
+}
+.song-metro-title { font-weight: 600; }
+.song-metro-readout { color: var(--muted); font-size: .9rem; }
+.song-metro-readout strong { color: var(--text); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.song-metro-controls { display: flex; align-items: center; gap: 10px; width: 100%; }
+.song-metro-controls .ghost { min-width: 46px; font-size: 1.2rem; }
+.song-metro-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.song-metro-beats { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
+.song-metro-beats select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 8px; font-size: .95rem;
+}
+.song-metro .metro-go { min-width: 120px; }
+
 .photos { display: flex; flex-wrap: wrap; gap: 10px; }
 .photo { position: relative; }
 .photo img {
