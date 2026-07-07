@@ -336,4 +336,74 @@ export const STARTER_SONGS = [
       " c' g e e | c d c d | e d c A | A G c2 |\n",
     notes: "Nostalgic and gentle — a nice longer piece to settle into. Pentatonic, so easy on the ear.",
   },
+
+  // ---------------- lyre harp (C-major, in range, every note is a string) ----
+  // Arranged to sit inside the 19/21-string lyre (C3–B5) using only white
+  // notes, so nothing needs transposing and every note lands on a real string.
+  // They play beautifully on the kalimba and harmonica too.
+  {
+    id: "lyre-greensleeves",
+    title: "Greensleeves",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Greensleeves\nM:3/4\nL:1/4\nQ:1/4=100\nK:Am\n" +
+      "A | c2 d | e3/2 f/ e | d2 B | G3/2 A/ B | c2 A | A2 G | A2 A |" +
+      " c2 d | e3/2 f/ e | d2 B | G3/2 A/ B | c2 A | B2 G | A3 |" +
+      " g2 g | g3/2 f/ e | d2 B | G3/2 A/ B | c2 A | A2 G | A2 A |" +
+      " g2 g | g3/2 f/ e | d2 B | G3/2 A/ B | c2 A | B2 G | A3 |\n",
+    notes:
+      "The classic lyre tune. This is the all-natural (modal) version so every " +
+      "note is a real string — no sharps needed. Play it slow and flowing.",
+  },
+  {
+    id: "lyre-silentnight",
+    title: "Silent Night",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Silent Night\nM:3/4\nL:1/4\nQ:1/4=96\nK:C\n" +
+      "G3/2 A/ G | E2 z | G3/2 A/ G | E2 z | d2 d | B3 | c2 c | G3 |" +
+      " A2 A | c3/2 B/ A | G3/2 A/ G | E2 z | A2 A | c3/2 B/ A | G3/2 A/ G | E2 z |" +
+      " d2 d | f3/2 d/ B | c3 | e3 | c2 G | E3/2 G/ F | D2 z | C3 |\n",
+    notes: "A calm, familiar carol that sits right in the lyre's sweet middle strings.",
+  },
+  {
+    id: "lyre-lavendersblue",
+    title: "Lavender's Blue",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Lavender's Blue\nM:3/4\nL:1/4\nQ:1/4=120\nK:C\n" +
+      "C | F2 F | F2 F | E F G | A2 z | c2 A | F2 F | E F D | C2 z |" +
+      " C | F2 F | F2 F | E F G | A2 z | c2 A | F G E | D E D | C3 |\n",
+    notes: "Gentle old English lullaby-waltz — try it with the metronome at 3 beats per bar.",
+  },
+  {
+    id: "lyre-kumbayah",
+    title: "Kum Ba Yah",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Kum Ba Yah\nM:4/4\nL:1/4\nQ:1/4=80\nK:C\n" +
+      "C2 F2 | A3 A | A2 G2 | F4 | F2 A2 | c3 A | G2 F2 | E4 |" +
+      " C2 F2 | A3 A | A2 G2 | F4 | A2 c2 | A2 G2 | F2 D2 | C4 |\n",
+    notes: "Slow and peaceful — a lovely one to practise smooth string-to-string plucking.",
+  },
+  {
+    id: "lyre-saints",
+    title: "When the Saints Go Marching In",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:When the Saints Go Marching In\nM:4/4\nL:1/4\nQ:1/4=112\nK:C\n" +
+      "C E F | G3 z | C E F | G3 z | C E F | G2 E2 | C2 E2 | D4 |" +
+      " E3 E | D2 C2 | C2 E2 | G4 | A3 G | F3 z | E2 C2 | D2 z2 | C4 |\n",
+    notes: "Bright and bouncy for a change of pace — all in the lower half of the lyre.",
+  },
 ];
