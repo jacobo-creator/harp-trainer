@@ -406,4 +406,80 @@ export const STARTER_SONGS = [
       " E3 E | D2 C2 | C2 E2 | G4 | A3 G | F3 z | E2 C2 | D2 z2 | C4 |\n",
     notes: "Bright and bouncy for a change of pace — all in the lower half of the lyre.",
   },
+
+  // ---------------- peaceful & longer (full-length, lyre-ready) --------------
+  // Complete melodies (not just a phrase), C-major and in the lyre's range, so
+  // they settle in for a longer, calming play. Lovely on kalimba too.
+  {
+    id: "calm-shenandoah",
+    title: "Shenandoah",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Shenandoah\nM:4/4\nL:1/4\nQ:1/4=66\nK:C\n" +
+      "C | E G c2 | c A G E | G3 E | D2 C2 | C3 E |" +
+      " G c c2 | c A G E | G2 A2 | G3 z | C E G2 |" +
+      " c2 c A | G E G2 | A3 G | E D C2 | A,2 G,2 | C3 E |" +
+      " G c c2 | c A G E | G2 A2 | G3 z | E2 D2 | C4 |\n",
+    notes:
+      "A wide, slow-rolling American river song — one of the most peaceful of all. " +
+      "Let each note ring into the next.",
+  },
+  {
+    id: "calm-dannyboy",
+    title: "Danny Boy (Londonderry Air)",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Danny Boy\nM:4/4\nL:1/8\nQ:1/4=72\nK:C\n" +
+      "G,A, | C4 E3 F | G4 c4 | E3 G c3 d | e6 c2 |" +
+      " d3 c A3 F | G4 E3 C | D6 E2 | F6 G,A, |" +
+      " C4 E3 F | G4 c4 | e3 d c3 A | G6 GA |" +
+      " c4 A3 c | G4 E3 F | C8- | C6 |\n",
+    notes:
+      "The famous Irish air — sweeping and tender. Take it slowly and lean on the long notes.",
+  },
+  {
+    id: "calm-waterwide",
+    title: "The Water Is Wide",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:The Water Is Wide\nM:3/4\nL:1/4\nQ:1/4=90\nK:C\n" +
+      "C | F2 A | c2 c | d2 c | A2 F | G3 | A2 G | F2 C | C2 z |" +
+      " C | F2 A | c2 c | d2 c | A2 F | G3 | A2 G | F2 E | D2 C | C3 |\n",
+    notes: "A gentle old folk song (O Waly Waly) — simple, flowing and calm.",
+  },
+  {
+    id: "calm-lochlomond",
+    title: "Loch Lomond",
+    key: "C",
+    difficulty: "medium",
+    tab: "",
+    abc:
+      "X:1\nT:Loch Lomond\nM:4/4\nL:1/8\nQ:1/4=96\nK:C\n" +
+      "C2 | E3 F G2 G2 | A2 G2 E2 C2 | E3 F G4- | G4 z2 C2 |" +
+      " E3 F G2 G2 | c2 A2 G2 E2 | D2 E2 C2 A,2 | C6 C2 |" +
+      " c2 c2 c2 A2 | G3 F G2 E2 | E3 F G2 G2 | A6 G2 |" +
+      " c2 c2 c2 A2 | G3 F G2 E2 | D2 E2 C2 A,2 | C6 |\n",
+    notes:
+      "The beloved Scottish song — a flowing verse and a lifting chorus. Warm and unhurried.",
+  },
+  {
+    id: "calm-redriver",
+    title: "Red River Valley",
+    key: "C",
+    difficulty: "easy",
+    tab: "",
+    abc:
+      "X:1\nT:Red River Valley\nM:4/4\nL:1/4\nQ:1/4=100\nK:C\n" +
+      "G, C | E3 E | E G E2 | D3 C | C2 z C |" +
+      " D3 D | E D C2 | A,3 A, | G,2 z C |" +
+      " E3 E | E G E2 | D3 C | C2 E2 |" +
+      " G3 A | G E C2 | D3 C | C4 |\n",
+    notes: "A soft, swaying cowboy waltz-song — easy to sink into and hum along with.",
+  },
 ];
