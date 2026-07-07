@@ -22,7 +22,7 @@ export function onHarpKeyChange(fn) {
   return () => listeners.delete(fn);
 }
 
-// ---- instrument (harmonica | kalimba) ----
+// ---- instrument (harmonica | kalimba | violin | lyre) ----
 const INST_STORAGE = "instrument";
 let instrument = localStorage.getItem(INST_STORAGE) || "harmonica";
 const instListeners = new Set();
@@ -31,7 +31,7 @@ export function getInstrument() {
   return instrument;
 }
 
-const INSTRUMENTS = ["harmonica", "kalimba", "violin"];
+const INSTRUMENTS = ["harmonica", "kalimba", "violin", "lyre"];
 export function setInstrument(value) {
   instrument = INSTRUMENTS.includes(value) ? value : "harmonica";
   localStorage.setItem(INST_STORAGE, instrument);
@@ -42,6 +42,7 @@ export function setInstrument(value) {
 function applyInstrumentClass() {
   document.body.classList.toggle("inst-kalimba", instrument === "kalimba");
   document.body.classList.toggle("inst-violin", instrument === "violin");
+  document.body.classList.toggle("inst-lyre", instrument === "lyre");
 }
 
 export function onInstrumentChange(fn) {

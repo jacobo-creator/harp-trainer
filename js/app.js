@@ -4,7 +4,7 @@ import { initTuner, stopTuner } from "./tuner.js";
 import { initSongs, refreshSongs } from "./songs.js";
 import { initMetronome, stopMetronome } from "./metronome.js";
 import { bindHarpKeySelectors, bindInstrumentSelectors } from "./settings.js";
-import { kalimbaTab } from "./tablature.js";
+import { kalimbaTab, lyreTab } from "./tablature.js";
 
 // Build the 21-key kalimba reference: tines in real physical order (lowest note
 // in the centre, alternating outward), taller = lower/longer tine.
@@ -87,10 +87,29 @@ function renderViolinReference() {
     .join("");
 }
 
+// 19/21-string lyre: strings laid out low → high, left to right (tallest bar =
+// longest/lowest string). Each string is labelled with its note + octave.
+function renderLyreReference() {
+  const host = document.getElementById("lyre-strings");
+  if (!host) return;
+  const notes = [];
+  for (let m = 48; m <= 83; m++) {
+    const label = lyreTab(m);
+    if (label) notes.push({ midi: m, label });
+  }
+  host.innerHTML = notes
+    .map((n) => {
+      const h = 26 + Math.round(((83 - n.midi) / (83 - 48)) * 60);
+      return `<span class="lyre-string"><span class="lstring-bar" style="height:${h}px"></span><span class="lstring-num">${n.label}</span></span>`;
+    })
+    .join("");
+}
+
 bindHarpKeySelectors();
 bindInstrumentSelectors();
 renderKalimbaLayout();
 renderViolinReference();
+renderLyreReference();
 initTuner();
 initMetronome();
 initSongs();

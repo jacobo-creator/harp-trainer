@@ -5,7 +5,7 @@
 import { getAllSongs, getSong, saveSong, deleteSong, seedStarterSongs } from "./store.js";
 import { HARP_KEYS, techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
-import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab, violinTab } from "./tablature.js";
+import { renderTabbedNotation, tabStringFromTune, melodyMidisFromTune, kalimbaTab, violinTab, lyreTab } from "./tablature.js";
 import { parseImport, transcribeTrack, kalimbaTabToAbc } from "./importers.js";
 import { searchTunes, browseTunes, fetchTuneAbc } from "./tunesearch.js";
 import {
@@ -812,10 +812,16 @@ function updateFitLabel() {
         ? "🎯 Fit to my kalimba"
         : inst === "violin"
         ? "🎯 Fit to first position"
+        : inst === "lyre"
+        ? "🎯 Fit to my lyre"
         : "🎯 Fit to my harp key";
   }
   // Keep the tab-field labels honest for whichever instrument is selected.
-  const word = inst === "kalimba" ? "Kalimba" : inst === "violin" ? "Violin" : "Harmonica";
+  const word =
+    inst === "kalimba" ? "Kalimba"
+      : inst === "violin" ? "Violin"
+      : inst === "lyre" ? "Lyre"
+      : "Harmonica";
   const fieldLabel = document.getElementById("tab-field-label");
   if (fieldLabel) fieldLabel.textContent = `${word} tab`;
   const toggleLabel = document.getElementById("tab-toggle-label");
@@ -825,6 +831,8 @@ function updateFitLabel() {
         ? "Show string + finger under each note"
         : inst === "kalimba"
         ? "Show kalimba number under each note"
+        : inst === "lyre"
+        ? "Show the lyre string under each note"
         : "Show harmonica tab under each note (uses the key above)";
   }
 }
@@ -845,6 +853,10 @@ function fitToHarp() {
     if (inst === "kalimba") {
       if (kalimbaTab(m)) return 2;
       return kalimbaTab(m - 1) || kalimbaTab(m + 1) ? 1 : 0;
+    }
+    if (inst === "lyre") {
+      if (lyreTab(m)) return 2;
+      return lyreTab(m - 1) || lyreTab(m + 1) ? 1 : 0;
     }
     if (techniquesForMidi(m, offset).length) return 2;
     return techniquesForMidi(m - 1, offset).length || techniquesForMidi(m + 1, offset).length ? 1 : 0;

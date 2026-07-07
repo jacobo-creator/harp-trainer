@@ -4,7 +4,7 @@ import { detectPitch, Smoother } from "./pitch.js";
 import { noteFromFrequency } from "./notes.js";
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
 import { getHarpKey, getInstrument } from "./settings.js";
-import { kalimbaTab, violinTab } from "./tablature.js";
+import { kalimbaTab, violinTab, lyreTab } from "./tablature.js";
 
 let audioCtx = null;
 let analyser = null;
@@ -197,6 +197,15 @@ function render(n, freq) {
         `<span class="tech-text">kalimba key</span></span>`
       : `<span class="tech-chip none">${n.label} ` +
         `<span class="tech-text">not on a 21-key kalimba</span></span>`;
+    return;
+  }
+  if (getInstrument() === "lyre") {
+    const l = lyreTab(n.midi);
+    el.technique.innerHTML = l
+      ? `<span class="tech-chip"><span class="tech-tab">${l}</span>` +
+        `<span class="tech-text">lyre string</span></span>`
+      : `<span class="tech-chip none">${n.label} ` +
+        `<span class="tech-text">no string for this note</span></span>`;
     return;
   }
   const offset = offsetForKey(getHarpKey());

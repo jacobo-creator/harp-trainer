@@ -33,6 +33,7 @@
           <option value="harmonica">Harmonica</option>
           <option value="kalimba">Kalimba</option>
           <option value="violin">Violin</option>
+          <option value="lyre">Lyre harp</option>
         </select>
       </label>
       <label class="harp-select only-harmonica">
@@ -111,6 +112,17 @@
         <div id="violin-strings" class="violin-strings"></div>
         <p class="hint">Standard first-position notes (with finger tapes). The
         staff shows if a note is sharp/flat (a “high” or “low” finger).</p>
+      </details>
+
+      <details class="help only-lyre" open>
+        <summary>Lyre harp strings</summary>
+        <p>Each string is one note, so the tab is just the note letter + octave —
+        e.g. <code>C4</code>, <code>G5</code>. Sharps/flats aren't on the lyre, so
+        the app suggests the nearest string (the blue tab marked <code>*</code>).</p>
+        <div id="lyre-strings" class="lyre-strings"></div>
+        <p class="hint">Standard C-major tuning, lowest string on the left. Check
+        this against your lyre's string labels — tell me if yours starts on a
+        different note and I'll retune the chart.</p>
       </details>
     </section>
 

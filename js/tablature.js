@@ -86,6 +86,20 @@ export function violinTab(midi) {
   return s.name + finger;
 }
 
+// A 19/21-string lyre harp: open strings tuned to the C-major (white) notes.
+// The common large lyre spans C3–B5 (three octaves). Each string IS a note, so
+// the tab is simply the note letter + octave, e.g. "C4" or "G5". Sharps/flats
+// have no string (as on the kalimba), so pickTechnique substitutes the nearest.
+export const LYRE_LOW = 48; // C3
+export const LYRE_HIGH = 83; // B5
+const LYRE_WHITE = new Set([0, 2, 4, 5, 7, 9, 11]); // C D E F G A B
+export function lyreTab(midi) {
+  if (midi < LYRE_LOW || midi > LYRE_HIGH) return null;
+  const pc = ((midi % 12) + 12) % 12;
+  if (!LYRE_WHITE.has(pc)) return null; // no string for a sharp/flat
+  return nameFromMidi(midi).label; // e.g. "C4"
+}
+
 // Pick a tab for a MIDI note on the current instrument. If the exact note isn't
 // reachable (a harmonica overblow / a kalimba sharp or out-of-range note), fall
 // back to the nearest playable note so the player has something to play instead
@@ -102,6 +116,17 @@ function pickTechnique(midi, offset) {
       for (const m of [midi - d, midi + d]) {
         const kk = kalimbaTab(m);
         if (kk) return { tab: kk, substitute: true };
+      }
+    }
+    return { tab: null, substitute: false };
+  }
+  if (getInstrument() === "lyre") {
+    const l = lyreTab(midi);
+    if (l) return { tab: l, substitute: false };
+    for (let d = 1; d <= 4; d++) {
+      for (const m of [midi - d, midi + d]) {
+        const ll = lyreTab(m);
+        if (ll) return { tab: ll, substitute: true };
       }
     }
     return { tab: null, substitute: false };
