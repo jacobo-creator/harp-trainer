@@ -63,6 +63,23 @@ body {
 .inst-kalimba .only-kalimba { display: block; }
 .inst-violin .only-violin { display: block; }
 .inst-lyre .only-lyre { display: block; }
+/* Violin open-string tuning picker (tuner screen, only in violin mode). */
+.tuner-strings { display: none; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.inst-violin .tuner-strings { display: flex; }
+.ts-label { color: var(--muted); font-size: .8rem; margin-right: 4px; }
+.ts-btn {
+  min-width: 40px; padding: 8px 13px; border-radius: 10px;
+  background: var(--bg-elev); color: var(--text); border: 1px solid var(--line);
+  font-weight: 700; font-size: 1rem;
+}
+.ts-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+/* Tune-up/down guidance shown in the technique area. */
+.tune-guide { display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; font-size: 1.15rem; }
+.tune-guide.ok { color: var(--ok); }
+.tune-guide.low { color: #f59e0b; }  /* flat → tighten (amber) */
+.tune-guide.high { color: #60a5fa; } /* sharp → loosen (blue) */
+.tune-sub { font-weight: 500; font-size: .78rem; color: var(--muted); text-align: center; max-width: 260px; }
+
 .violin-strings { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
 .vstring { display: flex; align-items: center; gap: 6px; }
 .vstring-name { width: 22px; font-weight: 700; color: var(--accent); text-align: center; }

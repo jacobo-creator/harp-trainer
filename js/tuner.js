@@ -1,9 +1,9 @@
 // Live tuner: microphone -> pitch -> note + cents + harmonica technique.
 
 import { detectPitch, Smoother } from "./pitch.js";
-import { noteFromFrequency } from "./notes.js";
+import { noteFromFrequency, nameFromMidi, frequencyFromMidi } from "./notes.js";
 import { techniquesForMidi, offsetForKey } from "./harmonica.js";
-import { getHarpKey, getInstrument } from "./settings.js";
+import { getHarpKey, getInstrument, onInstrumentChange } from "./settings.js";
 import { kalimbaTab, violinTab, lyreTab } from "./tablature.js";
 
 let audioCtx = null;
@@ -14,6 +14,14 @@ let running = false;
 const smoother = new Smoother(0.3);
 let buf = null;
 let micGate = parseFloat(localStorage.getItem("mic-gate")) || 0.025;
+
+// Violin guided tuning: the MIDI of the open string being tuned, or null =
+// "Auto" (plain chromatic naming). Persisted so it survives reloads.
+let tuningTarget = null;
+{
+  const saved = localStorage.getItem("violin-tune-string");
+  if (saved) tuningTarget = parseInt(saved) || null;
+}
 
 const el = {};
 
@@ -40,9 +48,43 @@ export function initTuner() {
   }
 
   el.toggle.addEventListener("click", () => (running ? stop() : start()));
+
+  // Violin string selector (G D A E, or Auto). Picking a string switches the
+  // display into guided open-string tuning.
+  el.strings = document.getElementById("tuner-strings");
+  if (el.strings) {
+    el.strings.querySelectorAll("[data-string]").forEach((b) =>
+      b.addEventListener("click", () => selectTuningString(b.dataset.string))
+    );
+  }
+  onInstrumentChange(() => applyTuningSelection());
+
   // The detection loop re-reads the harp key every frame, so changing it
   // updates the technique hint live with no extra wiring.
   reset();
+}
+
+function selectTuningString(val) {
+  tuningTarget = val === "auto" ? null : parseInt(val);
+  localStorage.setItem("violin-tune-string", tuningTarget == null ? "" : String(tuningTarget));
+  applyTuningSelection();
+}
+
+// Reflect the current selection on the buttons, and when a string is picked
+// (and we're idle) show it as the goal so it's clear what to bow.
+function applyTuningSelection() {
+  if (!el.strings) return;
+  const cur = tuningTarget == null ? "auto" : String(tuningTarget);
+  el.strings.querySelectorAll("[data-string]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.string === cur)
+  );
+  if (getInstrument() === "violin" && tuningTarget != null && !running) {
+    const t = nameFromMidi(tuningTarget);
+    el.note.textContent = t.name;
+    el.octave.textContent = t.octave;
+    el.technique.innerHTML =
+      `<span class="tune-guide">Bow the ${t.name} string steadily…</span>`;
+  }
 }
 
 async function start() {
@@ -132,6 +174,7 @@ function reset() {
   el.intune.className = "in-tune";
   el.technique.innerHTML = "";
   setNeedle(0, false);
+  applyTuningSelection(); // keep showing the chosen string as the goal when idle
 }
 
 function loop() {
@@ -155,6 +198,13 @@ function loop() {
 }
 
 function render(n, freq) {
+  // Violin guided tuning: compare against the chosen open string instead of
+  // naming whatever note is closest.
+  if (getInstrument() === "violin" && tuningTarget != null) {
+    renderViolinTuning(freq);
+    return;
+  }
+
   el.note.textContent = n.name;
   el.octave.textContent = n.octave;
   el.freq.textContent = freq.toFixed(1) + " Hz";
@@ -224,6 +274,45 @@ function render(n, freq) {
       `<span class="tech-chip none">Not on a ${getHarpKey()} harp` +
       ` <span class="tech-text">(out of range or overblow)</span></span>`;
   }
+}
+
+// Guided open-string tuning: measure how far the bowed string is from its
+// target pitch and say which way (and roughly how far) to adjust.
+function renderViolinTuning(freq) {
+  const a4 = parseFloat(el.a4.value) || 440;
+  const target = frequencyFromMidi(tuningTarget, a4);
+  const cents = Math.round(1200 * Math.log2(freq / target));
+  const t = nameFromMidi(tuningTarget);
+
+  el.note.textContent = t.name;
+  el.octave.textContent = t.octave;
+  el.freq.textContent = freq.toFixed(1) + " Hz";
+  el.cents.textContent = (cents >= 0 ? "+" : "") + cents + "¢";
+  setNeedle(cents, true);
+
+  if (Math.abs(cents) <= 5) {
+    el.intune.textContent = "In tune";
+    el.intune.className = "in-tune ok";
+    el.technique.innerHTML =
+      `<span class="tune-guide ok">✓ ${t.name} string is in tune</span>`;
+    return;
+  }
+
+  const low = cents < 0; // string is flat → needs tightening
+  el.intune.textContent = low ? "♭ flat" : "♯ sharp";
+  el.intune.className = low ? "in-tune flat" : "in-tune sharp";
+
+  const abs = Math.abs(cents);
+  const amount = abs > 45 ? " a lot" : abs > 15 ? "" : " a little";
+  const action = low ? "Tighten" : "Loosen";
+  const arrow = low ? "▲" : "▼";
+  const how = low
+    ? "raise it — fine tuner clockwise"
+    : "lower it — fine tuner anti-clockwise";
+  const farOff = abs > 250 ? ` (make sure you're bowing the ${t.name} string)` : "";
+  el.technique.innerHTML =
+    `<span class="tune-guide ${low ? "low" : "high"}">${arrow} ${action}${amount}` +
+    `<span class="tune-sub">${t.name} string is ${low ? "too low" : "too high"} — ${how}${farOff}</span></span>`;
 }
 
 function setNeedle(cents, active) {
