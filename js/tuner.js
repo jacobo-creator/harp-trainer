@@ -15,12 +15,15 @@ const smoother = new Smoother(0.3);
 let buf = null;
 let micGate = parseFloat(localStorage.getItem("mic-gate")) || 0.025;
 
-// Violin guided tuning: the MIDI of the open string being tuned, or null =
-// "Auto" (plain chromatic naming). Persisted so it survives reloads.
-let tuningTarget = null;
-{
-  const saved = localStorage.getItem("violin-tune-string");
-  if (saved) tuningTarget = parseInt(saved) || null;
+// Guided string tuning. Each holds the MIDI of the string being tuned, or null.
+// Violin null = "Auto" (plain chromatic naming). Lyre null = "Auto (nearest)":
+// guide toward whichever string you plucked. Persisted across reloads.
+let violinString = restoreString("violin-tune-string");
+let lyreString = restoreString("lyre-tune-string");
+
+function restoreString(key) {
+  const saved = localStorage.getItem(key);
+  return saved ? parseInt(saved) || null : null;
 }
 
 const el = {};
@@ -54,36 +57,72 @@ export function initTuner() {
   el.strings = document.getElementById("tuner-strings");
   if (el.strings) {
     el.strings.querySelectorAll("[data-string]").forEach((b) =>
-      b.addEventListener("click", () => selectTuningString(b.dataset.string))
+      b.addEventListener("click", () => selectViolinString(b.dataset.string))
     );
   }
-  onInstrumentChange(() => applyTuningSelection());
+
+  // Lyre string selector: a dropdown of every string (C3–B5) plus "Auto
+  // (nearest)", since 21 strings is too many for buttons.
+  el.lyreSelect = document.getElementById("lyre-string-select");
+  if (el.lyreSelect) {
+    let opts = '<option value="auto">Auto (nearest)</option>';
+    for (let m = 48; m <= 83; m++) {
+      if (!lyreTab(m)) continue; // C-major strings only
+      const t = nameFromMidi(m);
+      opts += `<option value="${m}">${t.name}${t.octave}</option>`;
+    }
+    el.lyreSelect.innerHTML = opts;
+    el.lyreSelect.addEventListener("change", () =>
+      selectLyreString(el.lyreSelect.value)
+    );
+  }
+
+  onInstrumentChange(() => applyTuningIdle());
 
   // The detection loop re-reads the harp key every frame, so changing it
   // updates the technique hint live with no extra wiring.
   reset();
 }
 
-function selectTuningString(val) {
-  tuningTarget = val === "auto" ? null : parseInt(val);
-  localStorage.setItem("violin-tune-string", tuningTarget == null ? "" : String(tuningTarget));
-  applyTuningSelection();
+function selectViolinString(val) {
+  violinString = val === "auto" ? null : parseInt(val);
+  localStorage.setItem("violin-tune-string", violinString == null ? "" : String(violinString));
+  applyTuningIdle();
 }
 
-// Reflect the current selection on the buttons, and when a string is picked
-// (and we're idle) show it as the goal so it's clear what to bow.
-function applyTuningSelection() {
-  if (!el.strings) return;
-  const cur = tuningTarget == null ? "auto" : String(tuningTarget);
-  el.strings.querySelectorAll("[data-string]").forEach((b) =>
-    b.classList.toggle("active", b.dataset.string === cur)
-  );
-  if (getInstrument() === "violin" && tuningTarget != null && !running) {
-    const t = nameFromMidi(tuningTarget);
+function selectLyreString(val) {
+  lyreString = val === "auto" ? null : parseInt(val);
+  localStorage.setItem("lyre-tune-string", lyreString == null ? "" : String(lyreString));
+  applyTuningIdle();
+}
+
+// Reflect the current selection on the controls, and when idle show a prompt so
+// it's clear what to play.
+function applyTuningIdle() {
+  if (el.strings) {
+    const cur = violinString == null ? "auto" : String(violinString);
+    el.strings.querySelectorAll("[data-string]").forEach((b) =>
+      b.classList.toggle("active", b.dataset.string === cur)
+    );
+  }
+  if (el.lyreSelect) el.lyreSelect.value = lyreString == null ? "auto" : String(lyreString);
+  if (running) return;
+  const inst = getInstrument();
+  if (inst === "violin" && violinString != null) {
+    const t = nameFromMidi(violinString);
     el.note.textContent = t.name;
     el.octave.textContent = t.octave;
-    el.technique.innerHTML =
-      `<span class="tune-guide">Bow the ${t.name} string steadily…</span>`;
+    el.technique.innerHTML = `<span class="tune-guide">Bow the ${t.name} string steadily…</span>`;
+  } else if (inst === "lyre") {
+    if (lyreString != null) {
+      const t = nameFromMidi(lyreString);
+      el.note.textContent = t.name;
+      el.octave.textContent = t.octave;
+      el.technique.innerHTML = `<span class="tune-guide">Pluck the ${t.name}${t.octave} string…</span>`;
+    } else {
+      el.technique.innerHTML =
+        `<span class="tune-guide">Pluck any string — I'll match it to the nearest note</span>`;
+    }
   }
 }
 
@@ -174,7 +213,7 @@ function reset() {
   el.intune.className = "in-tune";
   el.technique.innerHTML = "";
   setNeedle(0, false);
-  applyTuningSelection(); // keep showing the chosen string as the goal when idle
+  applyTuningIdle(); // keep showing the chosen string as the goal when idle
 }
 
 function loop() {
@@ -198,10 +237,17 @@ function loop() {
 }
 
 function render(n, freq) {
-  // Violin guided tuning: compare against the chosen open string instead of
-  // naming whatever note is closest.
-  if (getInstrument() === "violin" && tuningTarget != null) {
-    renderViolinTuning(freq);
+  // Guided string tuning: compare against a target string instead of naming
+  // whatever note is closest.
+  const inst = getInstrument();
+  if (inst === "violin" && violinString != null) {
+    renderStringTuning(violinString, freq);
+    return;
+  }
+  if (inst === "lyre") {
+    const a4 = parseFloat(el.a4.value) || 440;
+    const target = lyreString != null ? lyreString : nearestLyreMidi(freq, a4);
+    renderStringTuning(target, freq);
     return;
   }
 
@@ -276,25 +322,44 @@ function render(n, freq) {
   }
 }
 
-// Guided open-string tuning: measure how far the bowed string is from its
-// target pitch and say which way (and roughly how far) to adjust.
-function renderViolinTuning(freq) {
+// The nearest lyre string (C-major white note within C3–B5) to a frequency —
+// used by the lyre's "Auto (nearest)" mode.
+function nearestLyreMidi(freq, a4) {
+  const exact = 69 + 12 * Math.log2(freq / a4);
+  const m = Math.max(48, Math.min(83, Math.round(exact)));
+  const isWhite = (x) => [0, 2, 4, 5, 7, 9, 11].includes(((x % 12) + 12) % 12);
+  if (isWhite(m)) return m;
+  // On a black key: pick whichever white neighbour the pitch is closer to.
+  return Math.abs(exact - (m - 1)) <= Math.abs(exact - (m + 1)) ? m - 1 : m + 1;
+}
+
+// Guided string tuning: measure how far the played string is from its target
+// pitch and say which way (and roughly how far) to adjust. Shared by the violin
+// and the lyre; wording adapts to the instrument.
+function renderStringTuning(target, freq) {
+  const inst = getInstrument();
   const a4 = parseFloat(el.a4.value) || 440;
-  const target = frequencyFromMidi(tuningTarget, a4);
-  const cents = Math.round(1200 * Math.log2(freq / target));
-  const t = nameFromMidi(tuningTarget);
+  const targetFreq = frequencyFromMidi(target, a4);
+  const cents = Math.round(1200 * Math.log2(freq / targetFreq));
+  const t = nameFromMidi(target);
+  const label = inst === "lyre" ? t.name + t.octave : t.name; // "C4" vs "A"
+
+  // A slightly wider "in tune" window than the chromatic display: open strings
+  // don't need bend-level precision, and it absorbs the detector's few-cents
+  // drift at the very top of the range (A5/B5).
+  const TOL = 8;
 
   el.note.textContent = t.name;
   el.octave.textContent = t.octave;
   el.freq.textContent = freq.toFixed(1) + " Hz";
   el.cents.textContent = (cents >= 0 ? "+" : "") + cents + "¢";
-  setNeedle(cents, true);
+  setNeedle(cents, true, TOL);
 
-  if (Math.abs(cents) <= 5) {
+  if (Math.abs(cents) <= TOL) {
     el.intune.textContent = "In tune";
     el.intune.className = "in-tune ok";
     el.technique.innerHTML =
-      `<span class="tune-guide ok">✓ ${t.name} string is in tune</span>`;
+      `<span class="tune-guide ok">✓ ${label} string is in tune</span>`;
     return;
   }
 
@@ -306,21 +371,26 @@ function renderViolinTuning(freq) {
   const amount = abs > 45 ? " a lot" : abs > 15 ? "" : " a little";
   const action = low ? "Tighten" : "Loosen";
   const arrow = low ? "▲" : "▼";
-  const how = low
-    ? "raise it — fine tuner clockwise"
-    : "lower it — fine tuner anti-clockwise";
-  const farOff = abs > 250 ? ` (make sure you're bowing the ${t.name} string)` : "";
+  const how =
+    inst === "lyre"
+      ? low
+        ? "tighten with the tuning key to raise it"
+        : "loosen with the tuning key to lower it"
+      : low
+      ? "raise it — fine tuner clockwise"
+      : "lower it — fine tuner anti-clockwise";
+  const farOff = abs > 250 ? ` (make sure you're on the ${label} string)` : "";
   el.technique.innerHTML =
     `<span class="tune-guide ${low ? "low" : "high"}">${arrow} ${action}${amount}` +
-    `<span class="tune-sub">${t.name} string is ${low ? "too low" : "too high"} — ${how}${farOff}</span></span>`;
+    `<span class="tune-sub">${label} string is ${low ? "too low" : "too high"} — ${how}${farOff}</span></span>`;
 }
 
-function setNeedle(cents, active) {
+function setNeedle(cents, active, tol = 5) {
   const clamped = Math.max(-50, Math.min(50, cents));
   const pct = ((clamped + 50) / 100) * 100;
   el.needle.style.left = pct + "%";
   el.needle.classList.toggle("active", active);
-  el.needle.classList.toggle("ok", active && Math.abs(cents) <= 5);
+  el.needle.classList.toggle("ok", active && Math.abs(cents) <= tol);
 }
 
 export function stopTuner() {

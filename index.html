@@ -54,6 +54,10 @@
         <button type="button" class="ts-btn" data-string="69">A</button>
         <button type="button" class="ts-btn" data-string="76">E</button>
       </div>
+      <div id="lyre-tuner-strings" class="tuner-strings">
+        <label class="ts-label" for="lyre-string-select">Tune string</label>
+        <select id="lyre-string-select" class="ts-select"></select>
+      </div>
       <div id="gauge" class="gauge">
         <div class="note-display">
           <span id="note-name" class="note-name">–</span>
@@ -141,6 +145,17 @@
         <p class="hint">Standard C-major tuning, lowest string on the left. Check
         this against your lyre's string labels — tell me if yours starts on a
         different note and I'll retune the chart.</p>
+      </details>
+
+      <details class="help only-lyre" open>
+        <summary>Tuning the lyre</summary>
+        <p>Leave the picker on <strong>Auto (nearest)</strong>, pluck a string,
+        and the app matches it to the closest note and shows how to adjust:
+        <strong>Tighten</strong> with the tuning key to raise a flat string,
+        <strong>Loosen</strong> to bring a sharp one down — until it reads
+        <strong>In tune ✓</strong>. Work along the strings one by one. If a string
+        is a long way off, <strong>pick its exact note</strong> from the list so
+        Auto doesn't lock onto a neighbour.</p>
       </details>
     </section>
 
